@@ -29,14 +29,8 @@
   "content_scripts": [
     {
       "matches": ["*://*.bridgebase.com/*"],
-      "js": ["modules/module-loader.js"],
+      "js": ["bbo-tools.js"],
       "run_at": "document_end"
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": ["modules/*.js"],
-      "matches": ["*://*.bridgebase.com/*"]
     }
   ]
 }

@@ -2,52 +2,52 @@
 // Author: fubbleskag
 
 document.addEventListener('DOMContentLoaded', () => {
-  const moduleList = document.getElementById('moduleList');
+  const featureList = document.getElementById('featureList');
   let settings = null;
   
-  // Function to create module toggle UI
-  function createModuleToggle(id, name, description, enabled) {
-    const moduleItem = document.createElement('div');
-    moduleItem.className = 'module-item';
+  // Function to create feature toggle UI
+  function createFeatureToggle(id, name, description, enabled) {
+    const featureItem = document.createElement('div');
+    featureItem.className = 'feature-item';
     
-    const moduleHeader = document.createElement('div');
-    moduleHeader.className = 'module-header';
+    const featureHeader = document.createElement('div');
+    featureHeader.className = 'feature-header';
     
-    const moduleName = document.createElement('div');
-    moduleName.className = 'module-name';
-    moduleName.textContent = name;
+    const featureName = document.createElement('div');
+    featureName.className = 'feature-name';
+    featureName.textContent = name;
     
-    const moduleToggle = document.createElement('label');
-    moduleToggle.className = 'module-toggle';
+    const featureToggle = document.createElement('label');
+    featureToggle.className = 'feature-toggle';
     
     const toggleInput = document.createElement('input');
     toggleInput.type = 'checkbox';
     toggleInput.checked = enabled;
-    toggleInput.dataset.moduleId = id;
+    toggleInput.dataset.featureId = id;
     
     const toggleSlider = document.createElement('span');
     toggleSlider.className = 'slider';
     
-    moduleToggle.appendChild(toggleInput);
-    moduleToggle.appendChild(toggleSlider);
+    featureToggle.appendChild(toggleInput);
+    featureToggle.appendChild(toggleSlider);
     
-    moduleHeader.appendChild(moduleName);
-    moduleHeader.appendChild(moduleToggle);
+    featureHeader.appendChild(featureName);
+    featureHeader.appendChild(featureToggle);
     
-    const moduleDescription = document.createElement('div');
-    moduleDescription.className = 'module-description';
-    moduleDescription.textContent = description;
+    const featureDescription = document.createElement('div');
+    featureDescription.className = 'feature-description';
+    featureDescription.textContent = description;
     
-    moduleItem.appendChild(moduleHeader);
-    moduleItem.appendChild(moduleDescription);
+    featureItem.appendChild(featureHeader);
+    featureItem.appendChild(featureDescription);
     
     // Add event listener to toggle
     toggleInput.addEventListener('change', (event) => {
       const checked = event.target.checked;
-      const moduleId = event.target.dataset.moduleId;
+      const featureId = event.target.dataset.featureId;
       
       // Update settings
-      settings.modules[moduleId].enabled = checked;
+      settings.features[featureId].enabled = checked;
       
       // Save settings
       chrome.runtime.sendMessage(
@@ -58,27 +58,27 @@ document.addEventListener('DOMContentLoaded', () => {
       );
     });
     
-    return moduleItem;
+    return featureItem;
   }
   
   // Load settings and create UI
   chrome.runtime.sendMessage({ action: 'getSettings' }, (response) => {
     settings = response;
     
-    // Clear module list
-    moduleList.innerHTML = '';
+    // Clear feature list
+    featureList.innerHTML = '';
     
-    // Create toggles for each module
-    if (settings && settings.modules) {
-      Object.keys(settings.modules).forEach(moduleId => {
-        const module = settings.modules[moduleId];
-        const moduleToggle = createModuleToggle(
-          moduleId,
-          module.name,
-          module.description,
-          module.enabled
+    // Create toggles for each feature
+    if (settings && settings.features) {
+      Object.keys(settings.features).forEach(featureId => {
+        const feature = settings.features[featureId];
+        const featureToggle = createFeatureToggle(
+          featureId,
+          feature.name,
+          feature.description,
+          feature.enabled
         );
-        moduleList.appendChild(moduleToggle);
+        featureList.appendChild(featureToggle);
       });
     }
   });

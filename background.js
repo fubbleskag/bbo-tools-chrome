@@ -1,15 +1,15 @@
 // BBO Tools - Background Script
 // Author: fubbleskag
 
-// Define default settings for modules
+// Define default settings for features
 const DEFAULT_SETTINGS = {
-  modules: {
-    filters: {
+  features: {
+    tableFilters: {
       enabled: true,
       name: "Table Filters",
       description: "Filter and sort tables with custom criteria"
     }
-    // Additional modules can be added here later
+    // Additional features can be added here later
   }
 };
 
@@ -28,22 +28,53 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'getSettings') {
     // Return current settings
     chrome.storage.sync.get('settings', (data) => {
-      sendResponse(data.settings || DEFAULT_SETTINGS);
+      // If no settings found, use defaults and save them
+      if (!data || !data.settings) {
+        console.log('BBO Tools: No settings found, using defaults');
+        chrome.storage.sync.set({ settings: DEFAULT_SETTINGS }, () => {
+          console.log('BBO Tools: Default settings saved');
+        });
+        sendResponse(DEFAULT_SETTINGS);
+      } else {
+        // Make sure features object exists
+        if (!data.settings.features) {
+          data.settings.features = DEFAULT_SETTINGS.features;
+          chrome.storage.sync.set({ settings: data.settings }, () => {
+            console.log('BBO Tools: Fixed missing features object');
+          });
+        }
+        sendResponse(data.settings);
+      }
     });
     return true; // Required for asynchronous response
   }
   
   if (message.action === 'saveSettings') {
-    // Save updated settings
-    chrome.storage.sync.set({ settings: message.settings }, () => {
-      sendResponse({ success: true });
+    // Get current settings first
+    chrome.storage.sync.get('settings', (data) => {
+      const currentSettings = data.settings || DEFAULT_SETTINGS;
       
-      // Notify content scripts of updated settings
-      chrome.tabs.query({ url: '*://*.bridgebase.com/*' }, (tabs) => {
-        tabs.forEach(tab => {
-          chrome.tabs.sendMessage(tab.id, { 
-            action: 'settingsUpdated', 
-            settings: message.settings 
+      // Make sure settings and features objects exist
+      let updatedSettings = message.settings;
+      if (!updatedSettings) {
+        updatedSettings = currentSettings;
+      }
+      
+      if (!updatedSettings.features) {
+        updatedSettings.features = currentSettings.features || DEFAULT_SETTINGS.features;
+      }
+      
+      // Save updated settings
+      chrome.storage.sync.set({ settings: updatedSettings }, () => {
+        sendResponse({ success: true });
+        
+        // Notify content scripts of updated settings
+        chrome.tabs.query({ url: '*://*.bridgebase.com/*' }, (tabs) => {
+          tabs.forEach(tab => {
+            chrome.tabs.sendMessage(tab.id, { 
+              action: 'settingsUpdated', 
+              settings: updatedSettings 
+            });
           });
         });
       });

@@ -1,79 +1,115 @@
-// BBO Tools - Table Filters Module
+// BBO Tools - Main Content Script
 // Author: fubbleskag
 
 (() => {
-  // Module state
-  let observer = null;
-  let checkboxes = {};
-  let sortSelect = null;
-  let isEnabled = false;
-  let controlsDiv = null;
+  console.log('BBO Tools: Initialized');
   
-  // Module configuration
-  const containerSelector = 'table-list-screen table-list div.listClass';
-  const contentSelector = 'table-list-screen div.contentClass';
-  
-  // Create module interface
-  const filtersModule = {
-    // Enable the module
-    enable: () => {
-      if (isEnabled) return;
-      
-      console.log('BBO Tools Filters: Enabling');
-      isEnabled = true;
-      
-      // Give the page a moment to fully load
-      setTimeout(() => {
-        // Initialize the filters
-        const result = setupTableFilteringAndSorting(containerSelector, contentSelector);
-        if (result) {
-          observer = result.observer;
-          checkboxes = result.checkboxes;
-          sortSelect = result.sortSelect;
-          controlsDiv = result.controlsDiv;
-        }
-      }, 1000);
-    },
-    
-    // Disable the module
-    disable: () => {
-      if (!isEnabled) return;
-      
-      console.log('BBO Tools Filters: Disabling');
-      isEnabled = false;
-      
-      // Clean up
-      if (observer) {
-        observer.disconnect();
-        observer = null;
-      }
-      
-      if (controlsDiv && controlsDiv.parentNode) {
-        controlsDiv.parentNode.removeChild(controlsDiv);
-        controlsDiv = null;
-      }
-      
-      // Reset any styles we've changed
-      const containerElement = document.querySelector(containerSelector);
-      if (containerElement) {
-        containerElement.style.display = '';
-        containerElement.style.flexDirection = '';
-        
-        // Reset items
-        const items = containerElement.querySelectorAll('table-list-item');
-        items.forEach(item => {
-          item.style.display = '';
-          item.style.order = '';
-        });
-      }
+  // Extension state
+  const state = {
+    tableFilters: {
+      enabled: false,
+      observer: null,
+      checkboxes: {},
+      sortSelect: null,
+      controlsDiv: null
     }
   };
   
-  // Register module with BBOTools
-  if (window.BBOTools) {
-    window.BBOTools.registerModule('filters', filtersModule);
-  } else {
-    console.error('BBO Tools Filters: Failed to register, BBOTools not available');
+  // Configuration
+  const config = {
+    tableFilters: {
+      containerSelector: 'table-list-screen table-list div.listClass',
+      contentSelector: 'table-list-screen div.contentClass'
+    }
+  };
+  
+  // Initialize the extension based on saved settings
+  function initialize() {
+    chrome.storage.sync.get('settings', (data) => {
+      // Check if data.settings exists, if not, use default settings
+      const settings = data.settings || { features: {} };
+      
+      // Ensure features object exists 
+      if (!settings.features) {
+        settings.features = {};
+      }
+      
+      // Ensure tableFilters exists in features
+      if (!settings.features.tableFilters) {
+        settings.features.tableFilters = {
+          enabled: true, // Default to enabled
+          name: "Table Filters",
+          description: "Filter and sort tables with custom criteria"
+        };
+        
+        // Save these default settings
+        chrome.storage.sync.set({ settings: settings }, () => {
+          console.log('BBO Tools: Default settings created and saved');
+        });
+      }
+      
+      // Now we can safely check if tableFilters is enabled
+      if (settings.features.tableFilters && settings.features.tableFilters.enabled) {
+        enableTableFilters();
+      }
+    });
+  }
+  
+  // Enable the table filters feature
+  function enableTableFilters() {
+    if (state.tableFilters.enabled) return;
+    
+    console.log('BBO Tools: Enabling Table Filters');
+    state.tableFilters.enabled = true;
+    
+    // Give the page a moment to fully load
+    setTimeout(() => {
+      // Initialize the filters
+      const result = setupTableFilteringAndSorting(
+        config.tableFilters.containerSelector, 
+        config.tableFilters.contentSelector
+      );
+      
+      if (result) {
+        state.tableFilters.observer = result.observer;
+        state.tableFilters.checkboxes = result.checkboxes;
+        state.tableFilters.sortSelect = result.sortSelect;
+        state.tableFilters.controlsDiv = result.controlsDiv;
+      }
+    }, 1000);
+  }
+  
+  // Disable the table filters feature
+  function disableTableFilters() {
+    if (!state.tableFilters.enabled) return;
+    
+    console.log('BBO Tools: Disabling Table Filters');
+    state.tableFilters.enabled = false;
+    
+    // Clean up
+    if (state.tableFilters.observer) {
+      state.tableFilters.observer.disconnect();
+      state.tableFilters.observer = null;
+    }
+    
+    if (state.tableFilters.controlsDiv && state.tableFilters.controlsDiv.parentNode) {
+      state.tableFilters.controlsDiv.parentNode.removeChild(state.tableFilters.controlsDiv);
+      state.tableFilters.controlsDiv = null;
+    }
+    
+    // Reset any styles we've changed
+    const containerElement = document.querySelector(config.tableFilters.containerSelector);
+    if (containerElement) {
+      containerElement.style.display = '';
+      containerElement.style.flexDirection = '';
+      
+      // Reset items
+      const items = containerElement.querySelectorAll('table-list-item');
+      items.forEach(item => {
+        item.style.display = '';
+        item.style.order = '';
+      });
+    }
   }
   
   // Function to add filtering checkboxes and a sorting dropdown
@@ -84,6 +120,8 @@
     
     // If elements don't exist yet, set up a mutation observer to wait for them
     if (!containerElement || !contentElement) {
+      console.log('BBO Tools: Target elements not found, setting up observer to wait for them');
+      
       // Create a new MutationObserver to watch for when these elements appear
       const bodyObserver = new MutationObserver((mutations) => {
         containerElement = document.querySelector(containerSelector);
@@ -91,15 +129,16 @@
         
         // If both elements exist, we can proceed with the setup
         if (containerElement && contentElement) {
+          console.log('BBO Tools: Target elements found, initializing filters');
           bodyObserver.disconnect(); // Stop observing once we have our elements
           const result = initializeFiltersAndSorting(containerElement, contentElement); // Call the main setup function
           
-          // If re-enabling, we need to update our module references
+          // Update our state references
           if (result) {
-            observer = result.observer;
-            checkboxes = result.checkboxes;
-            sortSelect = result.sortSelect;
-            controlsDiv = result.controlsDiv;
+            state.tableFilters.observer = result.observer;
+            state.tableFilters.checkboxes = result.checkboxes;
+            state.tableFilters.sortSelect = result.sortSelect;
+            state.tableFilters.controlsDiv = result.controlsDiv;
           }
         }
       });
@@ -110,6 +149,7 @@
         subtree: true
       });
       
+      console.log('BBO Tools: Observer started to wait for elements');
       return null; // Exit the function and let the observer handle it when elements appear
     }
     
@@ -119,6 +159,8 @@
   
   // Main initialization function that does the actual work once elements exist
   function initializeFiltersAndSorting(containerElement, contentElement) {
+    console.log('BBO Tools: Initializing filters and sorting UI');
+    
     // Create controls container
     const controlsDiv = document.createElement('div');
     controlsDiv.style.display = 'inline-block';
@@ -457,6 +499,8 @@
     // Initial application of filters and sort
     applyFiltersAndSort();
     
+    console.log('BBO Tools: Filters initialized successfully');
+    
     return {
       observer: observer,
       checkboxes: checkboxes,
@@ -464,4 +508,31 @@
       controlsDiv: controlsDiv
     };
   }
+  
+  // Listen for setting changes from popup
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'settingsUpdated' && message.settings) {
+      // Make sure features exists
+      if (!message.settings.features) {
+        message.settings.features = {};
+      }
+      
+      // Handle table filters feature
+      if (message.settings.features.tableFilters) {
+        if (message.settings.features.tableFilters.enabled) {
+          enableTableFilters();
+        } else {
+          disableTableFilters();
+        }
+      }
+      
+      // Send a response to confirm receipt
+      sendResponse({ success: true });
+    }
+    
+    return true; // Keep the message channel open for async response
+  });
+  
+  // Initialize the extension
+  initialize();
 })();
