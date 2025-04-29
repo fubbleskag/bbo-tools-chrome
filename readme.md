@@ -9,6 +9,7 @@ A Chrome extension that adds enhanced functionality to Bridge Base Online (bridg
 - Filter tables by special attributes (GiB/Robots, Permission Required, Kibitz Disallowed)
 - Sort tables by different criteria (Host, Open Seats, Kibitzers, Scoring)
 - Counts filtered tables
+- Collapsible filter panel for a cleaner interface
 
 ## Installation
 
@@ -39,6 +40,7 @@ A Chrome extension that adds enhanced functionality to Bridge Base Online (bridg
 - A filter panel will appear in the bottom-right corner of the tables list
 - Use checkboxes to filter tables by type
 - Use the dropdown to sort tables by different criteria
+- Click the "−" button to collapse the filter panel (click "+" to expand it again)
 
 ## Future Development
 

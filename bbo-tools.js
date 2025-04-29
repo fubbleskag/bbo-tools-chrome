@@ -12,6 +12,10 @@
       checkboxes: {},
       sortSelect: null,
       controlsDiv: null,
+      isCollapsed: false, // Track collapsed state
+      filterContent: null, // Reference to content that can be collapsed
+      collapseButton: null, // Reference to collapse button
+      hiddenBadge: null, // Reference to the filter counter badge
       lastUrl: null, // Track the last URL to detect navigation changes
       navigationObserver: null // Observer to watch for navigation changes
     }
@@ -77,6 +81,9 @@
         state.tableFilters.checkboxes = result.checkboxes;
         state.tableFilters.sortSelect = result.sortSelect;
         state.tableFilters.controlsDiv = result.controlsDiv;
+        state.tableFilters.filterContent = result.filterContent;
+        state.tableFilters.collapseButton = result.collapseButton;
+        state.tableFilters.hiddenBadge = result.hiddenBadge;
       }
       
       // Set up navigation detection
@@ -114,6 +121,9 @@
               state.tableFilters.checkboxes = result.checkboxes;
               state.tableFilters.sortSelect = result.sortSelect;
               state.tableFilters.controlsDiv = result.controlsDiv;
+              state.tableFilters.filterContent = result.filterContent;
+              state.tableFilters.collapseButton = result.collapseButton;
+              state.tableFilters.hiddenBadge = result.hiddenBadge;
             }
           }, 1000);
         }
@@ -150,6 +160,9 @@
               state.tableFilters.checkboxes = result.checkboxes;
               state.tableFilters.sortSelect = result.sortSelect;
               state.tableFilters.controlsDiv = result.controlsDiv;
+              state.tableFilters.filterContent = result.filterContent;
+              state.tableFilters.collapseButton = result.collapseButton;
+              state.tableFilters.hiddenBadge = result.hiddenBadge;
             }
           }, 1000);
         }
@@ -241,6 +254,9 @@
             state.tableFilters.checkboxes = result.checkboxes;
             state.tableFilters.sortSelect = result.sortSelect;
             state.tableFilters.controlsDiv = result.controlsDiv;
+            state.tableFilters.filterContent = result.filterContent;
+            state.tableFilters.collapseButton = result.collapseButton;
+            state.tableFilters.hiddenBadge = result.hiddenBadge;
           }
         }
       });
@@ -275,7 +291,43 @@
     controlsDiv.style.padding = '10px';
     controlsDiv.style.borderRadius = '5px';
     controlsDiv.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-    // Width is now determined by content
+    
+    // Create header with collapse button
+    const headerDiv = document.createElement('div');
+    headerDiv.style.display = 'flex';
+    headerDiv.style.justifyContent = 'space-between';
+    headerDiv.style.alignItems = 'center';
+    headerDiv.style.marginBottom = '8px';
+    headerDiv.style.borderBottom = '1px solid #ddd';
+    headerDiv.style.paddingBottom = '5px';
+    
+    const headerTitle = document.createElement('span');
+    headerTitle.textContent = 'Table Filters';
+    headerTitle.style.fontWeight = 'bold';
+    headerDiv.appendChild(headerTitle);
+    
+    // Create collapse/expand button
+    const collapseButton = document.createElement('button');
+    collapseButton.textContent = '−'; // Unicode minus sign
+    collapseButton.style.backgroundColor = '#e0e0e0';
+    collapseButton.style.border = 'none';
+    collapseButton.style.borderRadius = '3px';
+    collapseButton.style.width = '20px';
+    collapseButton.style.height = '20px';
+    collapseButton.style.cursor = 'pointer';
+    collapseButton.style.fontSize = '16px';
+    collapseButton.style.lineHeight = '1';
+    collapseButton.style.padding = '0';
+    collapseButton.style.display = 'flex';
+    collapseButton.style.justifyContent = 'center';
+    collapseButton.style.alignItems = 'center';
+    collapseButton.title = 'Collapse filter panel';
+    headerDiv.appendChild(collapseButton);
+    
+    controlsDiv.appendChild(headerDiv);
+    
+    // Create a container for the filterable content
+    const filterContent = document.createElement('div');
     
     // Create filter section
     const filterSection = document.createElement('div');
@@ -450,9 +502,12 @@
     // Add event listener to sort dropdown
     sortSelect.addEventListener('change', applyFiltersAndSort);
     
-    // Add sections to controls
-    controlsDiv.appendChild(filterSection);
-    controlsDiv.appendChild(sortSection);
+    // Add sections to filter content
+    filterContent.appendChild(filterSection);
+    filterContent.appendChild(sortSection);
+    
+    // Add filter content to controls
+    controlsDiv.appendChild(filterContent);
     
     // Create a badge for the hidden count - always visible
     const hiddenBadge = document.createElement('div');
@@ -480,6 +535,28 @@
     if (getComputedStyle(contentElement).position === 'static') {
       contentElement.style.position = 'relative';
     }
+    
+    // Add collapse/expand functionality
+    collapseButton.addEventListener('click', () => {
+      // Toggle visibility
+      if (filterContent.style.display === 'none') {
+        // Expand
+        filterContent.style.display = 'block';
+        collapseButton.textContent = '−'; // Unicode minus sign
+        collapseButton.title = 'Collapse filter panel';
+        state.tableFilters.isCollapsed = false;
+        // Show counter badge
+        hiddenBadge.style.display = 'flex';
+      } else {
+        // Collapse
+        filterContent.style.display = 'none';
+        collapseButton.textContent = '+'; // Plus sign
+        collapseButton.title = 'Expand filter panel';
+        state.tableFilters.isCollapsed = true;
+        // Hide counter badge
+        hiddenBadge.style.display = 'none';
+      }
+    });
     
     // Helper functions for sorting
     function getOpenSeatsCount(element) {
@@ -607,7 +684,10 @@
       observer: observer,
       checkboxes: checkboxes,
       sortSelect: sortSelect,
-      controlsDiv: controlsDiv
+      controlsDiv: controlsDiv,
+      filterContent: filterContent,
+      collapseButton: collapseButton,
+      hiddenBadge: hiddenBadge
     };
   }
   
