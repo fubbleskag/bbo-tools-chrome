@@ -301,9 +301,29 @@
     headerDiv.style.borderBottom = '1px solid #ddd';
     headerDiv.style.paddingBottom = '5px';
     
-    const headerTitle = document.createElement('span');
-    headerTitle.textContent = 'Table Filters';
+    // Create header title with counter
+    const headerTitle = document.createElement('div');
     headerTitle.style.fontWeight = 'bold';
+    headerTitle.style.display = 'flex';
+    headerTitle.style.alignItems = 'center';
+    
+    const titleText = document.createElement('span');
+    titleText.textContent = 'Table Filters';
+    headerTitle.appendChild(titleText);
+    
+    // Create counter badge that will be part of the title
+    const counterBadge = document.createElement('span');
+    counterBadge.id = 'filterCounterBadge';
+    counterBadge.style.marginLeft = '8px';
+    counterBadge.style.backgroundColor = '#e0e0e0';
+    counterBadge.style.color = '#333';
+    counterBadge.style.borderRadius = '10px';
+    counterBadge.style.padding = '1px 6px';
+    counterBadge.style.fontSize = '11px';
+    counterBadge.style.fontWeight = 'bold';
+    counterBadge.textContent = '0'; // Initialize with 0
+    headerTitle.appendChild(counterBadge);
+    
     headerDiv.appendChild(headerTitle);
     
     // Create collapse/expand button
@@ -336,36 +356,50 @@
     // Define filters - grouped by category
     const filters = [
       // Scoring filters group
-      { id: 'filterIMP', label: 'IMP', 
+      { id: 'filterIMP', label: 'IMPs', 
         group: 'scoring',
         check: (element) => {
           const descElement = element.querySelector('span.descClass');
           return descElement && descElement.textContent.startsWith('IMPs');
         }
       },
-      { id: 'filterMP', label: 'MP', 
+      { id: 'filterMP', label: 'Matchpoints', 
         group: 'scoring',
         check: (element) => {
           const descElement = element.querySelector('span.descClass');
           return descElement && descElement.textContent.startsWith('Matchpoints');
         }
       },
-      { id: 'filterTP', label: 'TP', 
+      { id: 'filterTP', label: 'Total points', 
         group: 'scoring',
         check: (element) => {
           const descElement = element.querySelector('span.descClass');
           return descElement && descElement.textContent.startsWith('Total points');
         }
       },
+      { id: 'filterBidding', label: 'Bidding', 
+        group: 'scoring',
+        check: (element) => {
+          const descElement = element.querySelector('span.descClass');
+          return descElement && descElement.textContent.includes('Bidding');
+        }
+      },
+      { id: 'filterTeaching', label: 'Teaching', 
+        group: 'scoring',
+        check: (element) => {
+          const descElement = element.querySelector('span.descClass');
+          return descElement && descElement.textContent.includes('Teaching');
+        }
+      },
       // Other filters
-      { id: 'filterRobots', label: 'GiB', 
+      { id: 'filterRobots', label: 'Robots', 
         group: 'other',
         check: (element) => {
           const nameTags = element.querySelectorAll('name-tag');
           return Array.from(nameTags).some(tag => tag.textContent.includes('Robot'));
         }
       },
-      { id: 'filterPermission', label: '', 
+      { id: 'filterPermission', label: 'Permission required', 
         iconSrc: 'assets/table_icons/permission.png',
         group: 'other',
         check: (element) => {
@@ -376,7 +410,7 @@
           });
         }
       },
-      { id: 'filterKibitz', label: '', 
+      { id: 'filterKibitz', label: 'Kibitzing not allowed', 
         iconSrc: 'assets/table_icons/disallowed.png',
         group: 'other',
         check: (element) => {
@@ -407,32 +441,33 @@
     
     for (const groupKey in filtersByGroup) {
       // Create group span container
-      const groupSpan = document.createElement('span');
+      const groupSpan = document.createElement('div');
       groupSpan.style.margin = '10px 0';
       groupSpan.style.display = 'block';
       groupSpan.style.backgroundColor = '#f5f5f5';
-      groupSpan.style.padding = '3px 8px';
+      groupSpan.style.padding = '6px 8px';
       groupSpan.style.borderRadius = '4px';
       groupSpan.style.border = '1px solid #ddd';
       
       // Create group label
-      const groupLabelSpan = document.createElement('span');
+      const groupLabelSpan = document.createElement('div');
       groupLabelSpan.style.fontWeight = 'bold';
-      groupLabelSpan.style.width = '70px';
-      groupLabelSpan.style.display = 'inline-block';
+      groupLabelSpan.style.marginBottom = '5px';
+      groupLabelSpan.style.borderBottom = '1px solid #ddd';
+      groupLabelSpan.style.paddingBottom = '3px';
       groupLabelSpan.textContent = groupLabels[groupKey];
       groupSpan.appendChild(groupLabelSpan);
       
       // Add checkboxes for this group
       filtersByGroup[groupKey].forEach(filter => {
-        const checkboxContainer = document.createElement('span');
-        checkboxContainer.style.marginRight = '10px';
-        checkboxContainer.style.display = 'inline-block';
+        const checkboxContainer = document.createElement('div');
+        checkboxContainer.style.margin = '4px 0';
+        checkboxContainer.style.display = 'block'; // Display as block for vertical layout
         
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.id = filter.id;
-        checkbox.style.marginRight = '3px';
+        checkbox.style.marginRight = '6px';
         checkbox.style.border = '1px solid #999';
         checkbox.style.outline = '1px solid #ddd';
         checkbox.checked = true; // Pre-check all boxes
@@ -451,10 +486,16 @@
           icon.style.width = '16px';
           icon.style.verticalAlign = 'middle';
           label.appendChild(icon);
+          
+          // If there's also a label text, add it after the icon
+          if (filter.label) {
+            const labelText = document.createTextNode(' ' + filter.label);
+            label.appendChild(labelText);
+          }
         } else {
           label.textContent = filter.label;
-          label.style.verticalAlign = 'middle';
         }
+        label.style.verticalAlign = 'middle';
         
         checkboxContainer.appendChild(checkbox);
         checkboxContainer.appendChild(label);
@@ -509,24 +550,7 @@
     // Add filter content to controls
     controlsDiv.appendChild(filterContent);
     
-    // Create a badge for the hidden count - always visible
-    const hiddenBadge = document.createElement('div');
-    hiddenBadge.id = 'filterCounterBadge';
-    hiddenBadge.style.position = 'absolute';
-    hiddenBadge.style.bottom = '10px';
-    hiddenBadge.style.right = '10px';
-    hiddenBadge.style.backgroundColor = '#e0e0e0';
-    hiddenBadge.style.color = '#333';
-    hiddenBadge.style.borderRadius = '50%';
-    hiddenBadge.style.width = '24px';
-    hiddenBadge.style.height = '24px';
-    hiddenBadge.style.display = 'flex';
-    hiddenBadge.style.alignItems = 'center';
-    hiddenBadge.style.justifyContent = 'center';
-    hiddenBadge.style.fontSize = '12px';
-    hiddenBadge.style.fontWeight = 'bold';
-    hiddenBadge.textContent = '0'; // Initialize with 0
-    controlsDiv.appendChild(hiddenBadge);
+    // No floating badge anymore as we've moved it to the title
     
     // Add the controls to the content area
     contentElement.appendChild(controlsDiv);
@@ -545,16 +569,12 @@
         collapseButton.textContent = '−'; // Unicode minus sign
         collapseButton.title = 'Collapse filter panel';
         state.tableFilters.isCollapsed = false;
-        // Show counter badge
-        hiddenBadge.style.display = 'flex';
       } else {
         // Collapse
         filterContent.style.display = 'none';
         collapseButton.textContent = '+'; // Plus sign
         collapseButton.title = 'Expand filter panel';
         state.tableFilters.isCollapsed = true;
-        // Hide counter badge
-        hiddenBadge.style.display = 'none';
       }
     });
     
@@ -637,8 +657,11 @@
         }
       });
       
-      // Update counter - always show the count
-      hiddenBadge.textContent = removalCount.toString();
+      // Update counter in the title
+      const counterBadge = document.getElementById('filterCounterBadge');
+      if (counterBadge) {
+        counterBadge.textContent = removalCount.toString();
+      }
       
       // Apply sorting to visible items
       const visibleItems = items.filter(item => item.style.display !== 'none');
@@ -687,7 +710,7 @@
       controlsDiv: controlsDiv,
       filterContent: filterContent,
       collapseButton: collapseButton,
-      hiddenBadge: hiddenBadge
+      hiddenBadge: counterBadge
     };
   }
   

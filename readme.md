@@ -5,11 +5,12 @@ A Chrome extension that adds enhanced functionality to Bridge Base Online (bridg
 ## Features
 
 ### Table Filters Module
-- Filter tables by scoring type (IMPs, Matchpoints, Total Points)
-- Filter tables by special attributes (GiB/Robots, Permission Required, Kibitz Disallowed)
+- Filter tables by scoring type (IMPs, Matchpoints, Total Points, Bidding, Teaching)
+- Filter tables by special attributes (Robots, Permission Required, Kibitz Disallowed)
 - Sort tables by different criteria (Host, Open Seats, Kibitzers, Scoring)
 - Counts filtered tables
 - Collapsible filter panel for a cleaner interface
+- Vertical arrangement of filter options for better readability
 
 ## Installation
 
