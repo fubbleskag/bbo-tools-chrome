@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "BBO Tools",
+  "version": "1.0.0",
+  "description": "A collection of tools for Bridge Base Online",
+  "author": "fubbleskag",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.bridgebase.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.bridgebase.com/*"],
+      "js": ["modules/module-loader.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["modules/*.js"],
+      "matches": ["*://*.bridgebase.com/*"]
+    }
+  ]
+}
