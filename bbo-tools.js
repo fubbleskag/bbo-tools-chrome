@@ -11,7 +11,9 @@
       observer: null,
       checkboxes: {},
       sortSelect: null,
-      controlsDiv: null
+      controlsDiv: null,
+      lastUrl: null, // Track the last URL to detect navigation changes
+      navigationObserver: null // Observer to watch for navigation changes
     }
   };
   
@@ -76,28 +78,106 @@
         state.tableFilters.sortSelect = result.sortSelect;
         state.tableFilters.controlsDiv = result.controlsDiv;
       }
+      
+      // Set up navigation detection
+      setupNavigationDetection();
     }, 1000);
   }
   
-  // Disable the table filters feature
-  function disableTableFilters() {
-    if (!state.tableFilters.enabled) return;
+  // Set up detection for navigation between clubs
+  function setupNavigationDetection() {
+    // Store the current URL
+    state.tableFilters.lastUrl = window.location.href;
     
-    console.log('BBO Tools: Disabling Table Filters');
-    state.tableFilters.enabled = false;
+    // Set up an interval to check for URL changes
+    if (!state.tableFilters.navigationInterval) {
+      state.tableFilters.navigationInterval = setInterval(() => {
+        const currentUrl = window.location.href;
+        
+        // If URL has changed, the user likely navigated to a different club
+        if (currentUrl !== state.tableFilters.lastUrl) {
+          console.log('BBO Tools: Navigation detected, reinitializing filters');
+          state.tableFilters.lastUrl = currentUrl;
+          
+          // Clean up existing filters
+          cleanupTableFilters();
+          
+          // Reinitialize filters after a short delay to allow the new page to load
+          setTimeout(() => {
+            const result = setupTableFilteringAndSorting(
+              config.tableFilters.containerSelector, 
+              config.tableFilters.contentSelector
+            );
+            
+            if (result) {
+              state.tableFilters.observer = result.observer;
+              state.tableFilters.checkboxes = result.checkboxes;
+              state.tableFilters.sortSelect = result.sortSelect;
+              state.tableFilters.controlsDiv = result.controlsDiv;
+            }
+          }, 1000);
+        }
+      }, 1000); // Check every second
+    }
     
-    // Clean up
+    // Also set up a MutationObserver to watch for changes to the DOM that might indicate navigation
+    if (!state.tableFilters.navigationObserver) {
+      state.tableFilters.navigationObserver = new MutationObserver((mutations) => {
+        // Detect if a table-list-screen was added or removed
+        const relevantMutation = mutations.some(mutation => {
+          return Array.from(mutation.addedNodes).some(node => {
+            return node.nodeName && node.nodeName.toLowerCase() === 'table-list-screen';
+          }) || Array.from(mutation.removedNodes).some(node => {
+            return node.nodeName && node.nodeName.toLowerCase() === 'table-list-screen';
+          });
+        });
+        
+        if (relevantMutation) {
+          console.log('BBO Tools: Table list screen changed, reinitializing filters');
+          
+          // Clean up existing filters
+          cleanupTableFilters();
+          
+          // Reinitialize filters after a short delay
+          setTimeout(() => {
+            const result = setupTableFilteringAndSorting(
+              config.tableFilters.containerSelector, 
+              config.tableFilters.contentSelector
+            );
+            
+            if (result) {
+              state.tableFilters.observer = result.observer;
+              state.tableFilters.checkboxes = result.checkboxes;
+              state.tableFilters.sortSelect = result.sortSelect;
+              state.tableFilters.controlsDiv = result.controlsDiv;
+            }
+          }, 1000);
+        }
+      });
+      
+      // Start observing the document body for club navigation changes
+      state.tableFilters.navigationObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    }
+  }
+  
+  // Clean up table filters before reinitializing
+  function cleanupTableFilters() {
+    // Disconnect the observer
     if (state.tableFilters.observer) {
       state.tableFilters.observer.disconnect();
       state.tableFilters.observer = null;
     }
     
+    // Remove the controls
     if (state.tableFilters.controlsDiv && state.tableFilters.controlsDiv.parentNode) {
       state.tableFilters.controlsDiv.parentNode.removeChild(state.tableFilters.controlsDiv);
       state.tableFilters.controlsDiv = null;
     }
     
-    // Reset any styles we've changed
+    // Reset the container styles
     const containerElement = document.querySelector(config.tableFilters.containerSelector);
     if (containerElement) {
       containerElement.style.display = '';
@@ -109,6 +189,28 @@
         item.style.display = '';
         item.style.order = '';
       });
+    }
+  }
+  
+  // Disable the table filters feature
+  function disableTableFilters() {
+    if (!state.tableFilters.enabled) return;
+    
+    console.log('BBO Tools: Disabling Table Filters');
+    state.tableFilters.enabled = false;
+    
+    // Clean up
+    cleanupTableFilters();
+    
+    // Stop the navigation detection
+    if (state.tableFilters.navigationInterval) {
+      clearInterval(state.tableFilters.navigationInterval);
+      state.tableFilters.navigationInterval = null;
+    }
+    
+    if (state.tableFilters.navigationObserver) {
+      state.tableFilters.navigationObserver.disconnect();
+      state.tableFilters.navigationObserver = null;
     }
   }
   
