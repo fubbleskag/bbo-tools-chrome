@@ -14,10 +14,12 @@
       controlsDiv: null,
       isCollapsed: false, // Track collapsed state
       filterContent: null, // Reference to content that can be collapsed
-      collapseButton: null, // Reference to collapse button
-      hiddenBadge: null, // Reference to the filter counter badge
+      filterButton: null, // Reference to filter button in button bar
       lastUrl: null, // Track the last URL to detect navigation changes
-      navigationObserver: null // Observer to watch for navigation changes
+      navigationObserver: null, // Observer to watch for navigation changes
+      filterCount: 0, // Track number of active filters
+      navigationTimeout: null, // For debouncing navigation events
+      initialized: false // Track if we've already initialized in this session
     }
   };
   
@@ -25,7 +27,8 @@
   const config = {
     tableFilters: {
       containerSelector: 'table-list-screen table-list div.listClass',
-      contentSelector: 'table-list-screen div.contentClass'
+      contentSelector: 'table-list-screen div.contentClass',
+      buttonBarSelector: 'table-list-screen div.buttonBarClass' // Added selector for the button bar
     }
   };
   
@@ -73,7 +76,8 @@
       // Initialize the filters
       const result = setupTableFilteringAndSorting(
         config.tableFilters.containerSelector, 
-        config.tableFilters.contentSelector
+        config.tableFilters.contentSelector,
+        config.tableFilters.buttonBarSelector
       );
       
       if (result) {
@@ -82,8 +86,7 @@
         state.tableFilters.sortSelect = result.sortSelect;
         state.tableFilters.controlsDiv = result.controlsDiv;
         state.tableFilters.filterContent = result.filterContent;
-        state.tableFilters.collapseButton = result.collapseButton;
-        state.tableFilters.hiddenBadge = result.hiddenBadge;
+        state.tableFilters.filterButton = result.filterButton;
       }
       
       // Set up navigation detection
@@ -91,93 +94,36 @@
     }, 1000);
   }
   
-  // Set up detection for navigation between clubs
-  function setupNavigationDetection() {
-    // Store the current URL
-    state.tableFilters.lastUrl = window.location.href;
+  // Helper function to clean up just the filter buttons
+  function cleanupFilterButtons() {
+    console.log('BBO Tools: Cleaning up filter buttons');
     
-    // Set up an interval to check for URL changes
-    if (!state.tableFilters.navigationInterval) {
-      state.tableFilters.navigationInterval = setInterval(() => {
-        const currentUrl = window.location.href;
-        
-        // If URL has changed, the user likely navigated to a different club
-        if (currentUrl !== state.tableFilters.lastUrl) {
-          console.log('BBO Tools: Navigation detected, reinitializing filters');
-          state.tableFilters.lastUrl = currentUrl;
-          
-          // Clean up existing filters
-          cleanupTableFilters();
-          
-          // Reinitialize filters after a short delay to allow the new page to load
-          setTimeout(() => {
-            const result = setupTableFilteringAndSorting(
-              config.tableFilters.containerSelector, 
-              config.tableFilters.contentSelector
-            );
-            
-            if (result) {
-              state.tableFilters.observer = result.observer;
-              state.tableFilters.checkboxes = result.checkboxes;
-              state.tableFilters.sortSelect = result.sortSelect;
-              state.tableFilters.controlsDiv = result.controlsDiv;
-              state.tableFilters.filterContent = result.filterContent;
-              state.tableFilters.collapseButton = result.collapseButton;
-              state.tableFilters.hiddenBadge = result.hiddenBadge;
-            }
-          }, 1000);
-        }
-      }, 1000); // Check every second
+    // Remove the filter button from state if it exists
+    if (state.tableFilters.filterButton && state.tableFilters.filterButton.parentNode) {
+      state.tableFilters.filterButton.parentNode.removeChild(state.tableFilters.filterButton);
+      state.tableFilters.filterButton = null;
     }
     
-    // Also set up a MutationObserver to watch for changes to the DOM that might indicate navigation
-    if (!state.tableFilters.navigationObserver) {
-      state.tableFilters.navigationObserver = new MutationObserver((mutations) => {
-        // Detect if a table-list-screen was added or removed
-        const relevantMutation = mutations.some(mutation => {
-          return Array.from(mutation.addedNodes).some(node => {
-            return node.nodeName && node.nodeName.toLowerCase() === 'table-list-screen';
-          }) || Array.from(mutation.removedNodes).some(node => {
-            return node.nodeName && node.nodeName.toLowerCase() === 'table-list-screen';
-          });
-        });
-        
-        if (relevantMutation) {
-          console.log('BBO Tools: Table list screen changed, reinitializing filters');
-          
-          // Clean up existing filters
-          cleanupTableFilters();
-          
-          // Reinitialize filters after a short delay
-          setTimeout(() => {
-            const result = setupTableFilteringAndSorting(
-              config.tableFilters.containerSelector, 
-              config.tableFilters.contentSelector
-            );
-            
-            if (result) {
-              state.tableFilters.observer = result.observer;
-              state.tableFilters.checkboxes = result.checkboxes;
-              state.tableFilters.sortSelect = result.sortSelect;
-              state.tableFilters.controlsDiv = result.controlsDiv;
-              state.tableFilters.filterContent = result.filterContent;
-              state.tableFilters.collapseButton = result.collapseButton;
-              state.tableFilters.hiddenBadge = result.hiddenBadge;
-            }
-          }, 1000);
-        }
-      });
+    // Also find and remove any other filter buttons that might be present
+    const buttonBars = document.querySelectorAll(config.tableFilters.buttonBarSelector);
+    buttonBars.forEach(buttonBar => {
+      if (!buttonBar) return;
       
-      // Start observing the document body for club navigation changes
-      state.tableFilters.navigationObserver.observe(document.body, {
-        childList: true,
-        subtree: true
+      const buttons = buttonBar.querySelectorAll('button');
+      buttons.forEach(button => {
+        const buttonText = button.textContent || '';
+        if (buttonText.includes('Filters (')) {
+          console.log('BBO Tools: Removing orphaned filter button');
+          button.parentNode.removeChild(button);
+        }
       });
-    }
+    });
   }
   
   // Clean up table filters before reinitializing
   function cleanupTableFilters() {
+    console.log('BBO Tools: Running full cleanup');
+    
     // Disconnect the observer
     if (state.tableFilters.observer) {
       state.tableFilters.observer.disconnect();
@@ -189,6 +135,9 @@
       state.tableFilters.controlsDiv.parentNode.removeChild(state.tableFilters.controlsDiv);
       state.tableFilters.controlsDiv = null;
     }
+    
+    // Clean up filter buttons
+    cleanupFilterButtons();
     
     // Reset the container styles
     const containerElement = document.querySelector(config.tableFilters.containerSelector);
@@ -203,6 +152,17 @@
         item.style.order = '';
       });
     }
+    
+    // Also remove any floating panels that might be orphaned
+    const possiblePanels = document.querySelectorAll('div[style*="z-index: 1000"]');
+    possiblePanels.forEach(panel => {
+      // Check if this might be our filter panel
+      if (panel.textContent && panel.textContent.includes('Table Filters')) {
+        if (panel.parentNode) {
+          panel.parentNode.removeChild(panel);
+        }
+      }
+    });
   }
   
   // Disable the table filters feature
@@ -227,26 +187,137 @@
     }
   }
   
+  // Set up detection for navigation between clubs
+  function setupNavigationDetection() {
+    // Store the current URL
+    state.tableFilters.lastUrl = window.location.href;
+    
+    // Set up an interval to check for URL changes
+    if (!state.tableFilters.navigationInterval) {
+      state.tableFilters.navigationInterval = setInterval(() => {
+        const currentUrl = window.location.href;
+        
+        // If URL has changed, the user likely navigated to a different club
+        if (currentUrl !== state.tableFilters.lastUrl) {
+          console.log('BBO Tools: Navigation detected, reinitializing filters');
+          state.tableFilters.lastUrl = currentUrl;
+          
+          // Create a debounced version of cleanup and reinitialization
+          clearTimeout(state.tableFilters.navigationTimeout);
+          
+          // Perform immediate cleanup
+          cleanupTableFilters();
+          
+          // Reset state to avoid duplicates
+          state.tableFilters.filterButton = null;
+          state.tableFilters.controlsDiv = null;
+          
+          // Reinitialize filters after a short delay to allow the new page to load
+          state.tableFilters.navigationTimeout = setTimeout(() => {
+            const result = setupTableFilteringAndSorting(
+              config.tableFilters.containerSelector, 
+              config.tableFilters.contentSelector,
+              config.tableFilters.buttonBarSelector
+            );
+            
+            if (result) {
+              state.tableFilters.observer = result.observer;
+              state.tableFilters.checkboxes = result.checkboxes;
+              state.tableFilters.sortSelect = result.sortSelect;
+              state.tableFilters.controlsDiv = result.controlsDiv;
+              state.tableFilters.filterContent = result.filterContent;
+              state.tableFilters.filterButton = result.filterButton;
+            }
+          }, 1000);
+        }
+      }, 1000); // Check every second
+    }
+    
+    // Also set up a MutationObserver to watch for changes to the DOM that might indicate navigation
+    if (!state.tableFilters.navigationObserver) {
+      state.tableFilters.navigationObserver = new MutationObserver((mutations) => {
+        // Detect if a table-list-screen was added or removed
+        const relevantMutation = mutations.some(mutation => {
+          return Array.from(mutation.addedNodes).some(node => {
+            return node.nodeName && node.nodeName.toLowerCase() === 'table-list-screen';
+          }) || Array.from(mutation.removedNodes).some(node => {
+            return node.nodeName && node.nodeName.toLowerCase() === 'table-list-screen';
+          });
+        });
+        
+        if (relevantMutation) {
+          console.log('BBO Tools: Table list screen changed, reinitializing filters');
+          
+          // Create a debounced version of cleanup and reinitialization
+          clearTimeout(state.tableFilters.navigationTimeout);
+          
+          // Perform immediate cleanup
+          cleanupTableFilters();
+          
+          // Reset state to avoid duplicates
+          state.tableFilters.filterButton = null;
+          state.tableFilters.controlsDiv = null;
+          
+          // Reinitialize filters after a short delay
+          state.tableFilters.navigationTimeout = setTimeout(() => {
+            const result = setupTableFilteringAndSorting(
+              config.tableFilters.containerSelector, 
+              config.tableFilters.contentSelector,
+              config.tableFilters.buttonBarSelector
+            );
+            
+            if (result) {
+              state.tableFilters.observer = result.observer;
+              state.tableFilters.checkboxes = result.checkboxes;
+              state.tableFilters.sortSelect = result.sortSelect;
+              state.tableFilters.controlsDiv = result.controlsDiv;
+              state.tableFilters.filterContent = result.filterContent;
+              state.tableFilters.filterButton = result.filterButton;
+            }
+          }, 1000);
+        }
+      });
+      
+      // Start observing the document body for club navigation changes
+      state.tableFilters.navigationObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    }
+  }
+  
   // Function to add filtering checkboxes and a sorting dropdown
-  function setupTableFilteringAndSorting(containerSelector, contentSelector) {
+  function setupTableFilteringAndSorting(containerSelector, contentSelector, buttonBarSelector) {
+    // First, clean up any existing buttons to prevent duplicates
+    cleanupFilterButtons();
+    
     // Check if elements exist, if not set up an observer to wait for them
     let containerElement = document.querySelector(containerSelector);
     let contentElement = document.querySelector(contentSelector);
+    let buttonBarElement = document.querySelector(buttonBarSelector);
     
     // If elements don't exist yet, set up a mutation observer to wait for them
-    if (!containerElement || !contentElement) {
+    if (!containerElement || !contentElement || !buttonBarElement) {
       console.log('BBO Tools: Target elements not found, setting up observer to wait for them');
+      
+      // Clean up any existing UI elements that might have been left behind
+      cleanupTableFilters();
       
       // Create a new MutationObserver to watch for when these elements appear
       const bodyObserver = new MutationObserver((mutations) => {
         containerElement = document.querySelector(containerSelector);
         contentElement = document.querySelector(contentSelector);
+        buttonBarElement = document.querySelector(buttonBarSelector);
         
-        // If both elements exist, we can proceed with the setup
-        if (containerElement && contentElement) {
+        // If all elements exist, we can proceed with the setup
+        if (containerElement && contentElement && buttonBarElement) {
           console.log('BBO Tools: Target elements found, initializing filters');
           bodyObserver.disconnect(); // Stop observing once we have our elements
-          const result = initializeFiltersAndSorting(containerElement, contentElement); // Call the main setup function
+          
+          // Clean up again right before initializing to make doubly sure
+          cleanupFilterButtons();
+          
+          const result = initializeFiltersAndSorting(containerElement, contentElement, buttonBarElement); // Call the main setup function
           
           // Update our state references
           if (result) {
@@ -255,8 +326,7 @@
             state.tableFilters.sortSelect = result.sortSelect;
             state.tableFilters.controlsDiv = result.controlsDiv;
             state.tableFilters.filterContent = result.filterContent;
-            state.tableFilters.collapseButton = result.collapseButton;
-            state.tableFilters.hiddenBadge = result.hiddenBadge;
+            state.tableFilters.filterButton = result.filterButton;
           }
         }
       });
@@ -271,87 +341,94 @@
       return null; // Exit the function and let the observer handle it when elements appear
     }
     
-    // If we reach here, both elements exist, so proceed with setup
-    return initializeFiltersAndSorting(containerElement, contentElement);
+    // If we reach here, all elements exist, so proceed with setup
+    return initializeFiltersAndSorting(containerElement, contentElement, buttonBarElement);
   }
   
   // Main initialization function that does the actual work once elements exist
-  function initializeFiltersAndSorting(containerElement, contentElement) {
+  function initializeFiltersAndSorting(containerElement, contentElement, buttonBarElement) {
     console.log('BBO Tools: Initializing filters and sorting UI');
     
-    // Create controls container
+    // Clean up any existing buttons first to make absolutely sure we don't get duplicates
+    cleanupFilterButtons();
+    
+    // Create filter button for the button bar
+    const filterButton = document.createElement('button');
+    filterButton.className = 'mat-focus-indicator mat-raised-button mat-button-base mat-primary';
+    filterButton.style.height = '41px';
+    filterButton.style.marginLeft = '8px';
+    filterButton.setAttribute('data-bbo-tools-filter-button', 'true'); // Add a data attribute for easier identification
+    
+    // Create the span for the button text
+    const buttonTextSpan = document.createElement('span');
+    buttonTextSpan.className = 'mat-button-wrapper';
+    buttonTextSpan.textContent = 'Filters (0)';
+    filterButton.appendChild(buttonTextSpan);
+    
+    // Create additional spans required for material button styling
+    const rippleSpan = document.createElement('span');
+    rippleSpan.className = 'mat-ripple mat-button-ripple';
+    filterButton.appendChild(rippleSpan);
+    
+    const overlaySpan = document.createElement('span');
+    overlaySpan.className = 'mat-button-focus-overlay';
+    filterButton.appendChild(overlaySpan);
+    
+    // Append the button to the button bar, aligning it to the right
+    buttonBarElement.appendChild(filterButton);
+    filterButton.style.float = 'right';
+    
+    // Create controls container (initially hidden)
     const controlsDiv = document.createElement('div');
-    controlsDiv.style.display = 'inline-block';
-    // Position at bottom right with high z-index
+    controlsDiv.style.display = 'none'; // Start hidden
     controlsDiv.style.position = 'absolute';
-    controlsDiv.style.bottom = '20px';
+    controlsDiv.style.bottom = '10px'; // Position below the header
     controlsDiv.style.right = '20px';
     controlsDiv.style.zIndex = '1000';
     controlsDiv.style.backgroundColor = 'white';
-    controlsDiv.style.padding = '10px';
+    controlsDiv.style.padding = '15px';
     controlsDiv.style.borderRadius = '5px';
-    controlsDiv.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+    controlsDiv.style.boxShadow = '0 2px 10px rgba(0,0,0,0.3)';
+    controlsDiv.style.maxWidth = '300px';
+    controlsDiv.style.width = '280px';
     
-    // Create header with collapse button
+    // Create header
     const headerDiv = document.createElement('div');
     headerDiv.style.display = 'flex';
     headerDiv.style.justifyContent = 'space-between';
     headerDiv.style.alignItems = 'center';
-    headerDiv.style.marginBottom = '8px';
+    headerDiv.style.marginBottom = '12px';
     headerDiv.style.borderBottom = '1px solid #ddd';
-    headerDiv.style.paddingBottom = '5px';
+    headerDiv.style.paddingBottom = '8px';
     
-    // Create header title with counter
+    // Create header title
     const headerTitle = document.createElement('div');
     headerTitle.style.fontWeight = 'bold';
-    headerTitle.style.display = 'flex';
-    headerTitle.style.alignItems = 'center';
-    
-    const titleText = document.createElement('span');
-    titleText.textContent = 'Table Filters';
-    headerTitle.appendChild(titleText);
-    
-    // Create counter badge that will be part of the title
-    const counterBadge = document.createElement('span');
-    counterBadge.id = 'filterCounterBadge';
-    counterBadge.style.marginLeft = '8px';
-    counterBadge.style.backgroundColor = '#e0e0e0';
-    counterBadge.style.color = '#333';
-    counterBadge.style.borderRadius = '10px';
-    counterBadge.style.padding = '1px 6px';
-    counterBadge.style.fontSize = '11px';
-    counterBadge.style.fontWeight = 'bold';
-    counterBadge.textContent = '0'; // Initialize with 0
-    headerTitle.appendChild(counterBadge);
-    
+    headerTitle.style.fontSize = '16px';
+    headerTitle.textContent = 'Table Filters';
     headerDiv.appendChild(headerTitle);
     
-    // Create collapse/expand button
-    const collapseButton = document.createElement('button');
-    collapseButton.textContent = '−'; // Unicode minus sign
-    collapseButton.style.backgroundColor = '#e0e0e0';
-    collapseButton.style.border = 'none';
-    collapseButton.style.borderRadius = '3px';
-    collapseButton.style.width = '20px';
-    collapseButton.style.height = '20px';
-    collapseButton.style.cursor = 'pointer';
-    collapseButton.style.fontSize = '16px';
-    collapseButton.style.lineHeight = '1';
-    collapseButton.style.padding = '0';
-    collapseButton.style.display = 'flex';
-    collapseButton.style.justifyContent = 'center';
-    collapseButton.style.alignItems = 'center';
-    collapseButton.title = 'Collapse filter panel';
-    headerDiv.appendChild(collapseButton);
+    // Create close button
+    const closeButton = document.createElement('button');
+    closeButton.innerHTML = '&times;'; // × character
+    closeButton.style.backgroundColor = 'transparent';
+    closeButton.style.border = 'none';
+    closeButton.style.cursor = 'pointer';
+    closeButton.style.fontSize = '20px';
+    closeButton.style.lineHeight = '1';
+    closeButton.style.padding = '0 5px';
+    closeButton.title = 'Close filter panel';
+    headerDiv.appendChild(closeButton);
     
     controlsDiv.appendChild(headerDiv);
     
     // Create a container for the filterable content
     const filterContent = document.createElement('div');
+    controlsDiv.appendChild(filterContent);
     
     // Create filter section
     const filterSection = document.createElement('div');
-    filterSection.style.marginBottom = '10px';
+    filterSection.style.marginBottom = '15px';
     
     // Define filters - grouped by category
     const filters = [
@@ -445,37 +522,39 @@
       groupSpan.style.margin = '10px 0';
       groupSpan.style.display = 'block';
       groupSpan.style.backgroundColor = '#f5f5f5';
-      groupSpan.style.padding = '6px 8px';
+      groupSpan.style.padding = '10px';
       groupSpan.style.borderRadius = '4px';
       groupSpan.style.border = '1px solid #ddd';
       
       // Create group label
       const groupLabelSpan = document.createElement('div');
       groupLabelSpan.style.fontWeight = 'bold';
-      groupLabelSpan.style.marginBottom = '5px';
+      groupLabelSpan.style.marginBottom = '8px';
+      groupLabelSpan.style.paddingBottom = '5px';
       groupLabelSpan.style.borderBottom = '1px solid #ddd';
-      groupLabelSpan.style.paddingBottom = '3px';
       groupLabelSpan.textContent = groupLabels[groupKey];
       groupSpan.appendChild(groupLabelSpan);
       
       // Add checkboxes for this group
       filtersByGroup[groupKey].forEach(filter => {
         const checkboxContainer = document.createElement('div');
-        checkboxContainer.style.margin = '4px 0';
-        checkboxContainer.style.display = 'block'; // Display as block for vertical layout
+        checkboxContainer.style.margin = '6px 0';
+        checkboxContainer.style.display = 'flex';
+        checkboxContainer.style.alignItems = 'center';
         
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.id = filter.id;
-        checkbox.style.marginRight = '6px';
-        checkbox.style.border = '1px solid #999';
-        checkbox.style.outline = '1px solid #ddd';
+        checkbox.style.marginRight = '8px';
+        checkbox.style.cursor = 'pointer';
         checkbox.checked = true; // Pre-check all boxes
         checkboxes[filter.id] = checkbox;
         
         // Create label
         const label = document.createElement('label');
         label.htmlFor = filter.id;
+        label.style.cursor = 'pointer';
+        label.style.userSelect = 'none';
         
         // If filter has an icon, create an image instead of text
         if (filter.iconSrc) {
@@ -485,17 +564,17 @@
           icon.style.height = '16px';
           icon.style.width = '16px';
           icon.style.verticalAlign = 'middle';
+          icon.style.marginRight = '5px';
           label.appendChild(icon);
           
           // If there's also a label text, add it after the icon
           if (filter.label) {
-            const labelText = document.createTextNode(' ' + filter.label);
+            const labelText = document.createTextNode(filter.label);
             label.appendChild(labelText);
           }
         } else {
           label.textContent = filter.label;
         }
-        label.style.verticalAlign = 'middle';
         
         checkboxContainer.appendChild(checkbox);
         checkboxContainer.appendChild(label);
@@ -511,16 +590,21 @@
     
     // Create sort section
     const sortSection = document.createElement('div');
+    sortSection.style.margin = '15px 0 5px 0';
     
-    const sortLabel = document.createElement('span');
-    sortLabel.textContent = 'Sort by: ';
+    const sortLabel = document.createElement('div');
+    sortLabel.textContent = 'Sort by:';
     sortLabel.style.fontWeight = 'bold';
+    sortLabel.style.marginBottom = '8px';
     sortSection.appendChild(sortLabel);
     
     // Create sort dropdown
     const sortSelect = document.createElement('select');
     sortSelect.id = 'tableSortSelect';
-    sortSelect.style.marginLeft = '5px';
+    sortSelect.style.width = '100%';
+    sortSelect.style.padding = '5px';
+    sortSelect.style.borderRadius = '4px';
+    sortSelect.style.border = '1px solid #ccc';
     
     // Define sort options
     const sortOptions = [
@@ -540,17 +624,9 @@
     
     sortSection.appendChild(sortSelect);
     
-    // Add event listener to sort dropdown
-    sortSelect.addEventListener('change', applyFiltersAndSort);
-    
     // Add sections to filter content
     filterContent.appendChild(filterSection);
     filterContent.appendChild(sortSection);
-    
-    // Add filter content to controls
-    controlsDiv.appendChild(filterContent);
-    
-    // No floating badge anymore as we've moved it to the title
     
     // Add the controls to the content area
     contentElement.appendChild(controlsDiv);
@@ -560,23 +636,22 @@
       contentElement.style.position = 'relative';
     }
     
-    // Add collapse/expand functionality
-    collapseButton.addEventListener('click', () => {
-      // Toggle visibility
-      if (filterContent.style.display === 'none') {
-        // Expand
-        filterContent.style.display = 'block';
-        collapseButton.textContent = '−'; // Unicode minus sign
-        collapseButton.title = 'Collapse filter panel';
-        state.tableFilters.isCollapsed = false;
+    // Add filter button click event to toggle filter panel
+    filterButton.addEventListener('click', () => {
+      if (controlsDiv.style.display === 'none') {
+        controlsDiv.style.display = 'block';
       } else {
-        // Collapse
-        filterContent.style.display = 'none';
-        collapseButton.textContent = '+'; // Plus sign
-        collapseButton.title = 'Expand filter panel';
-        state.tableFilters.isCollapsed = true;
+        controlsDiv.style.display = 'none';
       }
     });
+    
+    // Add close button event
+    closeButton.addEventListener('click', () => {
+      controlsDiv.style.display = 'none';
+    });
+    
+    // Add event listener to sort dropdown
+    sortSelect.addEventListener('change', applyFiltersAndSort);
     
     // Helper functions for sorting
     function getOpenSeatsCount(element) {
@@ -657,10 +732,15 @@
         }
       });
       
-      // Update counter in the title
-      const counterBadge = document.getElementById('filterCounterBadge');
-      if (counterBadge) {
-        counterBadge.textContent = removalCount.toString();
+      // Update filter count in button text
+      state.tableFilters.filterCount = removalCount;
+      buttonTextSpan.textContent = `Filters (${removalCount})`;
+      
+      // Change button color if filters are active
+      if (removalCount > 0) {
+        filterButton.style.backgroundColor = '#1a854c'; // Green color for active filters
+      } else {
+        filterButton.style.backgroundColor = ''; // Default color when no filters active
       }
       
       // Apply sorting to visible items
@@ -709,8 +789,7 @@
       sortSelect: sortSelect,
       controlsDiv: controlsDiv,
       filterContent: filterContent,
-      collapseButton: collapseButton,
-      hiddenBadge: counterBadge
+      filterButton: filterButton
     };
   }
   
