@@ -44,6 +44,12 @@ body {
   border-radius: 4px;
   padding: 10px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: background-color 0.2s ease;
+}
+
+.feature-item:focus-within {
+  background-color: #f9f9f9;
+  outline: 2px solid #003366;
 }
 
 .feature-header {
@@ -69,6 +75,10 @@ body {
   opacity: 0;
   width: 0;
   height: 0;
+}
+
+.feature-toggle input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
 }
 
 .slider {
@@ -103,6 +113,15 @@ input:checked + .slider:before {
   transform: translateX(20px);
 }
 
+input:focus + .slider {
+  box-shadow: 0 0 0 2px rgba(26, 133, 76, 0.5);
+}
+
+input:disabled + .slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .feature-description {
   font-size: 12px;
   color: #666;
@@ -116,4 +135,96 @@ input:checked + .slider:before {
   display: flex;
   justify-content: space-between;
   border-top: 1px solid #ddd;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px 0;
+  color: #666;
+  font-style: italic;
+}
+
+.error {
+  color: #d32f2f;
+  text-align: center;
+  padding: 10px;
+  background-color: #ffebee;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.save-feedback {
+  animation: fadeIn 0.3s;
+}
+
+.reload-button {
+  background-color: #003366;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin: 0 auto;
+  display: block;
+}
+
+.reload-button:hover {
+  background-color: #004c99;
+}
+
+.reload-button:focus {
+  outline: 2px solid #001a33;
+  outline-offset: 2px;
+}
+
+/* High contrast and accessibility improvements */
+@media (prefers-contrast: high) {
+  .slider {
+    background-color: #000;
+    border: 1px solid #000;
+  }
+  
+  input:checked + .slider {
+    background-color: #006400;
+  }
+  
+  .feature-item {
+    border: 1px solid #000;
+  }
+}
+
+/* For screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* No features message */
+.no-features {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-style: italic;
+}
+
+/* Error item */
+.error-item {
+  color: #d32f2f;
+  padding: 8px;
+  background-color: #ffebee;
+  border-radius: 4px;
+  font-size: 12px;
 }

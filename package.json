@@ -3,11 +3,5 @@
   "version": "1.0.0",
   "description": "A collection of tools for Bridge Base Online",
   "author": "fubbleskag",
-  "scripts": {
-    "convert-icons": "node tools/convert-icons.js"
-  },
-  "devDependencies": {
-    "sharp": "^0.32.6"
-  },
   "private": true
 }

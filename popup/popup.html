@@ -1,25 +1,28 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BBO Tools</title>
   <link rel="stylesheet" href="popup.css">
+  <script src="../browser-polyfill.min.js"></script>
 </head>
 <body>
-  <div class="header">
+  <div class="header" role="banner">
     <img src="../icons/icon48.png" alt="BBO Tools" class="logo">
     <h1>BBO Tools</h1>
   </div>
   
-  <div class="content">
-    <div class="feature-list" id="featureList">
+  <div class="content" role="main">
+    <div class="feature-list" id="featureList" role="region" aria-live="polite" aria-label="Feature toggles">
       <!-- Features will be inserted here dynamically -->
+      <div class="loading">Loading...</div>
     </div>
   </div>
   
-  <div class="footer">
+  <div class="footer" role="contentinfo">
     <span>by fubbleskag</span>
-    <span class="version">v1.0.0</span>
+    <span class="version">v1.0.1</span>
   </div>
   
   <script src="popup.js"></script>

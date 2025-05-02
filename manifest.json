@@ -4,6 +4,12 @@
   "version": "1.0.0",
   "description": "A collection of tools for Bridge Base Online",
   "author": "fubbleskag",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "bbo-tools@fubbleskag.extension",
+      "strict_min_version": "109.0"
+    }
+  },
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -24,13 +30,19 @@
     "*://*.bridgebase.com/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "scripts": ["background.js"]
   },
   "content_scripts": [
     {
       "matches": ["*://*.bridgebase.com/*"],
       "js": ["bbo-tools.js"],
       "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*.png"],
+      "matches": ["*://*.bridgebase.com/*"]
     }
   ]
 }
