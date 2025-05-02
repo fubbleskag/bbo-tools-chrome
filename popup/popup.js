@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Show loading indicator
   showLoading();
   
-  // Load settings using the Promise-based approach
+  // Inside DOMContentLoaded event listener in popup.js
   browserAPI.runtime.sendMessage({ action: 'getSettings' })
     .then(response => {
       if (!response) {

@@ -73,7 +73,7 @@
       }
     });
   }
-  
+
   // Save settings with fallback to local storage if sync fails
   function saveSettings(settings) {
     return new Promise((resolve, reject) => {
