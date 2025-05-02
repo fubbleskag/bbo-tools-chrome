@@ -1,0 +1,136 @@
+/* BBO Tools - Filter Controls Style */
+
+.bbo-tools-controls {
+  display: none;
+  position: absolute;
+  bottom: 10px;
+  right: 20px;
+  z-index: 1000;
+  background-color: white;
+  padding: 15px;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  max-width: 300px;
+  width: 280px;
+}
+
+.bbo-tools-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 8px;
+}
+
+.bbo-tools-title {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.bbo-tools-close-button {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 5px;
+}
+
+.bbo-tools-filter-button {
+  height: 41px;
+  margin-left: 8px;
+  float: right;
+}
+
+.bbo-tools-filter-active {
+  background-color: #1a854c !important;
+}
+
+.bbo-tools-filter-section {
+  margin-bottom: 15px;
+}
+
+.bbo-tools-filter-group {
+  margin: 10px 0;
+  display: block;
+  background-color: #f5f5f5;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.bbo-tools-group-label {
+  font-weight: bold;
+  margin-bottom: 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #ddd;
+}
+
+.bbo-tools-checkbox-container {
+  margin: 6px 0;
+  display: flex;
+  align-items: center;
+}
+
+.bbo-tools-checkbox {
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.bbo-tools-checkbox-label {
+  cursor: pointer;
+  user-select: none;
+}
+
+.bbo-tools-icon {
+  height: 16px;
+  width: 16px;
+  vertical-align: middle;
+  margin-right: 5px;
+}
+
+.bbo-tools-sort-section {
+  margin: 15px 0 5px 0;
+}
+
+.bbo-tools-sort-label {
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.bbo-tools-sort-select {
+  width: 100%;
+  padding: 5px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+/* High contrast and accessibility improvements */
+@media (prefers-contrast: high) {
+  .bbo-tools-filter-group {
+    background-color: #000;
+    border: 1px solid #000;
+  }
+  
+  .bbo-tools-filter-active {
+    background-color: #006400 !important;
+  }
+  
+  .bbo-tools-sort-select {
+    border: 2px solid #000;
+  }
+}
+
+/* For screen readers */
+.bbo-tools-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

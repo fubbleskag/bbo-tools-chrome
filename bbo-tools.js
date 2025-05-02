@@ -604,9 +604,7 @@
       
       // Create filter button with ARIA attributes for accessibility
       const filterButton = document.createElement('button');
-      filterButton.className = 'mat-focus-indicator mat-raised-button mat-button-base mat-primary';
-      filterButton.style.height = '41px';
-      filterButton.style.marginLeft = '8px';
+      filterButton.className = 'mat-focus-indicator mat-raised-button mat-button-base mat-primary bbo-tools-filter-button';
       filterButton.setAttribute('data-bbo-tools-filter-button', 'true');
       filterButton.setAttribute('aria-label', 'Toggle filter panel');
       filterButton.setAttribute('aria-haspopup', 'true');
@@ -626,53 +624,30 @@
       overlaySpan.className = 'mat-button-focus-overlay';
       filterButton.appendChild(overlaySpan);
       
-      // Append the button to the button bar, aligning it to the right
+      // Append the button to the button bar
       buttonBarElement.appendChild(filterButton);
-      filterButton.style.float = 'right';
       
       // Create controls container (initially hidden)
       const controlsDiv = document.createElement('div');
       controlsDiv.className = 'bbo-tools-controls';
-      controlsDiv.style.display = 'none'; // Start hidden
-      controlsDiv.style.position = 'absolute';
-      controlsDiv.style.bottom = '10px';
-      controlsDiv.style.right = '20px';
-      controlsDiv.style.zIndex = '1000';
-      controlsDiv.style.backgroundColor = 'white';
-      controlsDiv.style.padding = '15px';
-      controlsDiv.style.borderRadius = '5px';
-      controlsDiv.style.boxShadow = '0 2px 10px rgba(0,0,0,0.3)';
-      controlsDiv.style.maxWidth = '300px';
-      controlsDiv.style.width = '280px';
       controlsDiv.setAttribute('role', 'dialog');
       controlsDiv.setAttribute('aria-labelledby', 'filter-panel-title');
       
       // Create header
       const headerDiv = document.createElement('div');
-      headerDiv.style.display = 'flex';
-      headerDiv.style.justifyContent = 'space-between';
-      headerDiv.style.alignItems = 'center';
-      headerDiv.style.marginBottom = '12px';
-      headerDiv.style.borderBottom = '1px solid #ddd';
-      headerDiv.style.paddingBottom = '8px';
+      headerDiv.className = 'bbo-tools-header';
       
       // Create header title
       const headerTitle = document.createElement('div');
       headerTitle.id = 'filter-panel-title'; // For ARIA labelledby
-      headerTitle.style.fontWeight = 'bold';
-      headerTitle.style.fontSize = '16px';
+      headerTitle.className = 'bbo-tools-title';
       headerTitle.textContent = 'Table Filters';
       headerDiv.appendChild(headerTitle);
       
       // Create close button with ARIA attributes
       const closeButton = document.createElement('button');
+      closeButton.className = 'bbo-tools-close-button';
       closeButton.textContent = '×'; // Using textContent instead of innerHTML
-      closeButton.style.backgroundColor = 'transparent';
-      closeButton.style.border = 'none';
-      closeButton.style.cursor = 'pointer';
-      closeButton.style.fontSize = '20px';
-      closeButton.style.lineHeight = '1';
-      closeButton.style.padding = '0 5px';
       closeButton.title = 'Close filter panel';
       closeButton.setAttribute('aria-label', 'Close filter panel');
       headerDiv.appendChild(closeButton);
@@ -685,7 +660,7 @@
       
       // Create filter section
       const filterSection = document.createElement('div');
-      filterSection.style.marginBottom = '15px';
+      filterSection.className = 'bbo-tools-filter-section';
       
       // Add a centralized event handler for checkbox and label clicks
       filterSection.addEventListener('click', (event) => {
@@ -802,20 +777,12 @@
       for (const groupKey in filtersByGroup) {
         // Create group span container
         const groupSpan = document.createElement('div');
-        groupSpan.style.margin = '10px 0';
-        groupSpan.style.display = 'block';
-        groupSpan.style.backgroundColor = '#f5f5f5';
-        groupSpan.style.padding = '10px';
-        groupSpan.style.borderRadius = '4px';
-        groupSpan.style.border = '1px solid #ddd';
+        groupSpan.className = 'bbo-tools-filter-group';
         groupSpan.setAttribute('data-filter-group', groupKey);
         
         // Create group label
         const groupLabelSpan = document.createElement('div');
-        groupLabelSpan.style.fontWeight = 'bold';
-        groupLabelSpan.style.marginBottom = '8px';
-        groupLabelSpan.style.paddingBottom = '5px';
-        groupLabelSpan.style.borderBottom = '1px solid #ddd';
+        groupLabelSpan.className = 'bbo-tools-group-label';
         groupLabelSpan.textContent = groupLabels[groupKey];
         groupLabelSpan.setAttribute('role', 'heading');
         groupLabelSpan.setAttribute('aria-level', '2');
@@ -824,15 +791,12 @@
         // Add checkboxes for this group
         filtersByGroup[groupKey].forEach(filter => {
           const checkboxContainer = document.createElement('div');
-          checkboxContainer.style.margin = '6px 0';
-          checkboxContainer.style.display = 'flex';
-          checkboxContainer.style.alignItems = 'center';
+          checkboxContainer.className = 'bbo-tools-checkbox-container';
           
           const checkbox = document.createElement('input');
           checkbox.type = 'checkbox';
           checkbox.id = filter.id;
-          checkbox.style.marginRight = '8px';
-          checkbox.style.cursor = 'pointer';
+          checkbox.className = 'bbo-tools-checkbox';
           checkbox.checked = true; // Pre-check all boxes
           checkbox.setAttribute('aria-label', `Filter by ${filter.label}`);
           
@@ -842,18 +806,14 @@
           // Create label
           const label = document.createElement('label');
           label.htmlFor = filter.id;
-          label.style.cursor = 'pointer';
-          label.style.userSelect = 'none';
+          label.className = 'bbo-tools-checkbox-label';
           
           // If filter has an icon, create an image instead of text
           if (filter.iconSrc) {
             const icon = document.createElement('img');
             icon.src = filter.iconSrc;
             icon.alt = filter.label;
-            icon.style.height = '16px';
-            icon.style.width = '16px';
-            icon.style.verticalAlign = 'middle';
-            icon.style.marginRight = '5px';
+            icon.className = 'bbo-tools-icon';
             label.appendChild(icon);
             
             // If there's also a label text, add it after the icon
@@ -876,21 +836,17 @@
       
       // Create sort section
       const sortSection = document.createElement('div');
-      sortSection.style.margin = '15px 0 5px 0';
+      sortSection.className = 'bbo-tools-sort-section';
       
       const sortLabel = document.createElement('div');
       sortLabel.textContent = 'Sort by:';
-      sortLabel.style.fontWeight = 'bold';
-      sortLabel.style.marginBottom = '8px';
+      sortLabel.className = 'bbo-tools-sort-label';
       sortSection.appendChild(sortLabel);
       
       // Create sort dropdown
       const sortSelect = document.createElement('select');
       sortSelect.id = 'tableSortSelect';
-      sortSelect.style.width = '100%';
-      sortSelect.style.padding = '5px';
-      sortSelect.style.borderRadius = '4px';
-      sortSelect.style.border = '1px solid #ccc';
+      sortSelect.className = 'bbo-tools-sort-select';
       sortSelect.setAttribute('aria-label', 'Sort tables by');
       
       // Define sort options
@@ -1045,9 +1001,9 @@
           // Change button color if filters are active
           if (filterButton) {
             if (removalCount > 0) {
-              filterButton.style.backgroundColor = '#1a854c'; // Green color for active filters
+              filterButton.classList.add('bbo-tools-filter-active');
             } else {
-              filterButton.style.backgroundColor = ''; // Default color when no filters active
+              filterButton.classList.remove('bbo-tools-filter-active');
             }
           }
           
