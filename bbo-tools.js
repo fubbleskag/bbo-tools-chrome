@@ -61,11 +61,41 @@
                 reject(browserAPI.runtime.lastError);
                 return;
               }
-              resolve(localData.settings || { features: {} });
+              
+              const settings = localData.settings || { features: {} };
+              
+              // Basic validation
+              if (!settings.features || typeof settings.features !== 'object') {
+                console.warn('BBO Tools: Features object invalid, fixing locally');
+                settings.features = {
+                  tableFilters: {
+                    enabled: true,
+                    name: "Table Filters",
+                    description: "Filter and sort tables with custom criteria"
+                  }
+                };
+              }
+              
+              resolve(settings);
             });
             return;
           }
-          resolve(data.settings || { features: {} });
+          
+          const settings = data.settings || { features: {} };
+          
+          // Basic validation
+          if (!settings.features || typeof settings.features !== 'object') {
+            console.warn('BBO Tools: Features object invalid, fixing locally');
+            settings.features = {
+              tableFilters: {
+                enabled: true,
+                name: "Table Filters",
+                description: "Filter and sort tables with custom criteria"
+              }
+            };
+          }
+          
+          resolve(settings);
         });
       } catch (error) {
         console.error('Error in getSettings:', error);
@@ -104,37 +134,57 @@
   function initialize() {
     getSettings()
       .then(settings => {
-        // Ensure features object exists 
-        if (!settings.features) {
-          settings.features = {};
-        }
-        
-        // Ensure tableFilters exists in features
-        if (!settings.features.tableFilters) {
-          settings.features.tableFilters = {
-            enabled: true, // Default to enabled
-            name: "Table Filters",
-            description: "Filter and sort tables with custom criteria"
-          };
+        try {
+          // Check if settings has been properly validated
+          // Properly validated settings will always have a features object
+          if (!settings.features) {
+            console.warn('BBO Tools: Invalid settings received, requesting reload from background');
+            
+            // Request valid settings from background script
+            return browserAPI.runtime.sendMessage({ action: 'getSettings' })
+              .then(validSettings => {
+                console.log('BBO Tools: Received valid settings from background');
+                return validSettings;
+              })
+              .catch(error => {
+                console.error('BBO Tools: Failed to get valid settings', error);
+                // Use a default as fallback
+                return { 
+                  features: {
+                    tableFilters: {
+                      enabled: true,
+                      name: "Table Filters",
+                      description: "Filter and sort tables with custom criteria"
+                    }
+                  }
+                };
+              });
+          }
           
-          // Save these default settings
-          return saveSettings(settings).then(() => {
-            console.log('BBO Tools: Default settings created and saved');
-            return settings;
-          });
+          return settings;
+        } catch (error) {
+          console.error('BBO Tools: Error validating settings', error);
+          // Use default settings as fallback
+          return { 
+            features: {
+              tableFilters: {
+                enabled: true,
+                name: "Table Filters",
+                description: "Filter and sort tables with custom criteria"
+              }
+            }
+          };
         }
-        
-        return settings;
       })
       .then(settings => {
         // Now we can safely check if tableFilters is enabled
-        if (settings.features.tableFilters && settings.features.tableFilters.enabled) {
+        if (settings.features?.tableFilters?.enabled) {
           enableTableFilters();
         }
       })
       .catch(error => {
         console.error('BBO Tools: Error initializing settings', error);
-        // Try to continue with default settings
+        // Try to continue with default settings as a last resort
         enableTableFilters();
       });
   }

@@ -112,7 +112,94 @@ browserAPI.runtime.onInstalled.addListener(({ reason }) => {
   }
 });
 
-// Function to get settings with validation and error handling
+/**
+ * Validates the settings object structure and values
+ * @param {Object} settings - The settings object to validate
+ * @returns {Object} - Object with validation result and optional fixed settings
+ */
+function validateSettings(settings) {
+  // First, check if settings exists and is an object
+  if (!settings || typeof settings !== 'object') {
+    console.warn('BBO Tools: Settings is not an object, using defaults');
+    return {
+      valid: false,
+      fixedSettings: { ...DEFAULT_SETTINGS }
+    };
+  }
+  
+  // Create a working copy to avoid modifying the original directly
+  const validatedSettings = { ...settings };
+  let wasFixed = false;
+  
+  // Ensure features object exists
+  if (!validatedSettings.features || typeof validatedSettings.features !== 'object') {
+    console.warn('BBO Tools: Features is missing or not an object, adding defaults');
+    validatedSettings.features = { ...DEFAULT_SETTINGS.features };
+    wasFixed = true;
+  }
+  
+  // Validate each feature
+  for (const featureId in validatedSettings.features) {
+    const feature = validatedSettings.features[featureId];
+    
+    // Check if feature is an object
+    if (!feature || typeof feature !== 'object') {
+      console.warn(`BBO Tools: Feature ${featureId} is invalid, fixing`);
+      // If we have a default for this feature, use it, otherwise remove it
+      if (DEFAULT_SETTINGS.features[featureId]) {
+        validatedSettings.features[featureId] = { ...DEFAULT_SETTINGS.features[featureId] };
+      } else {
+        delete validatedSettings.features[featureId];
+      }
+      wasFixed = true;
+      continue;
+    }
+    
+    // Validate 'enabled' property
+    if (typeof feature.enabled !== 'boolean') {
+      console.warn(`BBO Tools: Feature ${featureId} has invalid 'enabled' property, fixing`);
+      // If we have a default, use that, otherwise default to true
+      if (DEFAULT_SETTINGS.features[featureId]) {
+        feature.enabled = DEFAULT_SETTINGS.features[featureId].enabled;
+      } else {
+        feature.enabled = true; // Default to enabled
+      }
+      wasFixed = true;
+    }
+    
+    // Validate name and description
+    if (!feature.name || typeof feature.name !== 'string') {
+      console.warn(`BBO Tools: Feature ${featureId} has invalid 'name' property, fixing`);
+      feature.name = DEFAULT_SETTINGS.features[featureId]?.name || featureId;
+      wasFixed = true;
+    }
+    
+    if (!feature.description || typeof feature.description !== 'string') {
+      console.warn(`BBO Tools: Feature ${featureId} has invalid 'description' property, fixing`);
+      feature.description = DEFAULT_SETTINGS.features[featureId]?.description || '';
+      wasFixed = true;
+    }
+  }
+  
+  // Ensure all default features exist
+  for (const defaultFeatureId in DEFAULT_SETTINGS.features) {
+    if (!validatedSettings.features[defaultFeatureId]) {
+      console.warn(`BBO Tools: Default feature ${defaultFeatureId} is missing, adding it`);
+      validatedSettings.features[defaultFeatureId] = { ...DEFAULT_SETTINGS.features[defaultFeatureId] };
+      wasFixed = true;
+    }
+  }
+  
+  return {
+    valid: !wasFixed, // If we had to fix anything, it wasn't valid
+    fixedSettings: validatedSettings
+  };
+}
+
+/**
+ * Gets settings with validation and auto-correction
+ * @returns {Promise<Object>} - Promise that resolves to the validated settings
+ */
 function getSettings() {
   return new Promise((resolve, reject) => {
     try {
@@ -124,28 +211,24 @@ function getSettings() {
             return resolve({ ...DEFAULT_SETTINGS });
           }
           
-          // Validate settings structure
-          if (typeof data.settings !== 'object') {
-            console.warn('BBO Tools: Invalid settings format, using defaults');
-            return resolve({ ...DEFAULT_SETTINGS });
-          }
+          // Validate the settings
+          const validation = validateSettings(data.settings);
           
-          // Make sure features object exists
-          if (!data.settings.features) {
-            console.log('BBO Tools: No features found, adding defaults');
-            data.settings.features = { ...DEFAULT_SETTINGS.features };
+          // If settings had to be fixed, save the fixed version
+          if (!validation.valid) {
+            console.log('BBO Tools: Settings were invalid, fixed and saving corrected version');
             
             // Save the fixed settings
-            storageAPI.set({ settings: data.settings })
+            storageAPI.set({ settings: validation.fixedSettings })
               .then(() => {
-                console.log('BBO Tools: Fixed missing features object');
+                console.log('BBO Tools: Fixed settings saved successfully');
               })
               .catch(error => {
                 console.warn('BBO Tools: Error saving fixed settings', error);
               });
           }
           
-          resolve(data.settings);
+          resolve(validation.fixedSettings);
         })
         .catch(error => {
           console.error('BBO Tools: Error getting settings', error);
@@ -158,25 +241,32 @@ function getSettings() {
   });
 }
 
-// Function to save settings with validation
+/**
+ * Saves settings with validation
+ * @param {Object} settings - The settings to save
+ * @returns {Promise<Object>} - Promise that resolves when settings are saved
+ */
 function saveSettings(settings) {
   return new Promise((resolve, reject) => {
     try {
-      // Validate settings
-      if (!settings || typeof settings !== 'object') {
-        console.warn('BBO Tools: Invalid settings object, using defaults');
-        settings = { ...DEFAULT_SETTINGS };
-      }
+      // Validate settings first
+      const validation = validateSettings(settings);
       
-      // Ensure features object exists
-      if (!settings.features) {
-        settings.features = { ...DEFAULT_SETTINGS.features };
+      // Always use the validated/fixed settings
+      const settingsToSave = validation.fixedSettings;
+      
+      // If settings were invalid, log a warning
+      if (!validation.valid) {
+        console.warn('BBO Tools: Invalid settings provided, using fixed version');
       }
       
       // Save settings
-      storageAPI.set({ settings })
+      storageAPI.set({ settings: settingsToSave })
         .then(result => {
-          resolve(result);
+          resolve({
+            ...result,
+            validationApplied: !validation.valid // Indicate if validation fixes were applied
+          });
         })
         .catch(error => {
           console.error('BBO Tools: Error saving settings', error);
@@ -200,43 +290,52 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
         })
         .catch(error => {
           console.error('BBO Tools: Error getting settings', error);
-          sendResponse({ ...DEFAULT_SETTINGS });
+          sendResponse({
+            error: 'Failed to get settings',
+            fallbackUsed: true,
+            settings: { ...DEFAULT_SETTINGS }
+          });
         });
       
       return true; // Keep the message channel open for the async response
     }
     
-    // Handle saveSettings message
+    // Handle saveSettings message with improved validation
     if (message.action === 'saveSettings') {
-      // Get current settings first
-      getSettings()
-        .then(currentSettings => {
-          // Create updated settings by merging with current settings
-          let updatedSettings = message.settings || {};
-          
-          if (!updatedSettings.features) {
-            updatedSettings.features = { ...currentSettings.features };
-          }
-          
-          // Save the updated settings
-          return saveSettings(updatedSettings);
-        })
-        .then(() => {
-          sendResponse({ success: true });
+      // Validate settings first
+      const providedSettings = message.settings || {};
+      
+      // Call the enhanced saveSettings function that includes validation
+      saveSettings(providedSettings)
+        .then(result => {
+          // Include validation info in response
+          sendResponse({
+            success: true,
+            validationApplied: result.validationApplied || false,
+            storage: result.storage
+          });
           
           // Notify all content scripts about the updated settings
-          return notifyTabsAboutSettingsChange(message.settings);
+          return notifyTabsAboutSettingsChange(providedSettings);
         })
         .catch(error => {
           console.error('BBO Tools: Error in saveSettings flow', error);
-          sendResponse({ success: false, error: error.message });
+          sendResponse({
+            success: false,
+            error: error.message,
+            errorCode: 'SAVE_FAILED'
+          });
         });
       
       return true; // Keep the message channel open for the async response
     }
   } catch (error) {
     console.error('BBO Tools: Unexpected error in message handler', error);
-    sendResponse({ success: false, error: error.message });
+    sendResponse({
+      success: false,
+      error: error.message,
+      errorCode: 'UNEXPECTED_ERROR'
+    });
     return true;
   }
 });

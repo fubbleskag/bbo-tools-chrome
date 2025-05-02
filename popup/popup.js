@@ -65,7 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
       featureItem.appendChild(featureHeader);
       featureItem.appendChild(featureDescription);
       
-      // Add event listener to toggle with error handling
       toggleInput.addEventListener('change', (event) => {
         try {
           const checked = event.target.checked;
@@ -86,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
           // Disable toggle while saving
           toggleInput.disabled = true;
           
-          // Update settings
+          // Update settings with validation in mind
           if (!settings) {
             settings = { features: {} };
           }
@@ -96,28 +95,43 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           
           if (!settings.features[featureId]) {
-            settings.features[featureId] = { enabled: checked };
+            settings.features[featureId] = {
+              enabled: checked,
+              name: featureId,
+              description: ''
+            };
           } else {
             settings.features[featureId].enabled = checked;
           }
           
-          // Save settings using the new Promise-based approach
+          // Save settings using the Promise-based approach
           browserAPI.runtime.sendMessage({ action: 'saveSettings', settings: settings })
             .then(response => {
               if (response && response.success) {
-                feedbackSpan.textContent = 'Saved!';
-                feedbackSpan.style.color = '#4CAF50';
-                
-                // Remove feedback message after a delay
-                setTimeout(() => {
-                  try {
-                    if (feedbackSpan.parentNode) {
-                      feedbackSpan.parentNode.removeChild(feedbackSpan);
+                // Check if validation was applied
+                if (response.validationApplied) {
+                  feedbackSpan.textContent = 'Saved (validated)';
+                  feedbackSpan.style.color = '#FF9800'; // Orange to indicate validation was needed
+                  
+                  // Refresh UI with validated settings
+                  setTimeout(() => {
+                    location.reload();
+                  }, 1500);
+                } else {
+                  feedbackSpan.textContent = 'Saved!';
+                  feedbackSpan.style.color = '#4CAF50';
+                  
+                  // Remove feedback message after a delay
+                  setTimeout(() => {
+                    try {
+                      if (feedbackSpan.parentNode) {
+                        feedbackSpan.parentNode.removeChild(feedbackSpan);
+                      }
+                    } catch (error) {
+                      console.warn('Error removing feedback span', error);
                     }
-                  } catch (error) {
-                    console.warn('Error removing feedback span', error);
-                  }
-                }, 2000);
+                  }, 2000);
+                }
               } else {
                 throw new Error(response?.error || 'Unknown error');
               }
