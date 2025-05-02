@@ -48,6 +48,33 @@
     };
   }
   
+  // Debounced navigation handler for consistent reinitializing after navigation
+  function createDebouncedNavigationHandler() {
+    return debounce((containerSelector, contentSelector, buttonBarSelector) => {
+      try {
+        const result = setupTableFilteringAndSorting(
+          containerSelector, 
+          contentSelector,
+          buttonBarSelector
+        );
+        
+        if (result) {
+          state.tableFilters.observer = result.observer;
+          state.tableFilters.checkboxes = result.checkboxes;
+          state.tableFilters.sortSelect = result.sortSelect;
+          state.tableFilters.controlsDiv = result.controlsDiv;
+          state.tableFilters.filterContent = result.filterContent;
+          state.tableFilters.filterButton = result.filterButton;
+        }
+      } catch (error) {
+        console.error('BBO Tools: Error reinitializing after navigation', error);
+      }
+    }, 1000);
+  }
+
+  // Initialize the debounced handler
+  const debouncedNavigationHandler = createDebouncedNavigationHandler();
+  
   // Promise-based wrapper for storage operations
   function getSettings() {
     return new Promise((resolve, reject) => {
@@ -344,9 +371,6 @@
             console.log('BBO Tools: Navigation detected, reinitializing filters');
             state.tableFilters.lastUrl = currentUrl;
             
-            // Create a debounced version of cleanup and reinitialization
-            clearTimeout(state.tableFilters.navigationTimeout);
-            
             // Perform immediate cleanup
             cleanupTableFilters();
             
@@ -354,27 +378,12 @@
             state.tableFilters.filterButton = null;
             state.tableFilters.controlsDiv = null;
             
-            // Reinitialize filters after a short delay to allow the new page to load
-            state.tableFilters.navigationTimeout = setTimeout(() => {
-              try {
-                const result = setupTableFilteringAndSorting(
-                  config.tableFilters.containerSelector, 
-                  config.tableFilters.contentSelector,
-                  config.tableFilters.buttonBarSelector
-                );
-                
-                if (result) {
-                  state.tableFilters.observer = result.observer;
-                  state.tableFilters.checkboxes = result.checkboxes;
-                  state.tableFilters.sortSelect = result.sortSelect;
-                  state.tableFilters.controlsDiv = result.controlsDiv;
-                  state.tableFilters.filterContent = result.filterContent;
-                  state.tableFilters.filterButton = result.filterButton;
-                }
-              } catch (error) {
-                console.error('BBO Tools: Error reinitializing after navigation', error);
-              }
-            }, 1000);
+            // Use the debounced navigation handler
+            debouncedNavigationHandler(
+              config.tableFilters.containerSelector, 
+              config.tableFilters.contentSelector,
+              config.tableFilters.buttonBarSelector
+            );
           }
         }, 1000); // Check every second
       }
@@ -394,9 +403,6 @@
           if (relevantMutation) {
             console.log('BBO Tools: Table list screen changed, reinitializing filters');
             
-            // Create a debounced version of cleanup and reinitialization
-            clearTimeout(state.tableFilters.navigationTimeout);
-            
             // Perform immediate cleanup
             cleanupTableFilters();
             
@@ -404,27 +410,12 @@
             state.tableFilters.filterButton = null;
             state.tableFilters.controlsDiv = null;
             
-            // Reinitialize filters after a short delay
-            state.tableFilters.navigationTimeout = setTimeout(() => {
-              try {
-                const result = setupTableFilteringAndSorting(
-                  config.tableFilters.containerSelector, 
-                  config.tableFilters.contentSelector,
-                  config.tableFilters.buttonBarSelector
-                );
-                
-                if (result) {
-                  state.tableFilters.observer = result.observer;
-                  state.tableFilters.checkboxes = result.checkboxes;
-                  state.tableFilters.sortSelect = result.sortSelect;
-                  state.tableFilters.controlsDiv = result.controlsDiv;
-                  state.tableFilters.filterContent = result.filterContent;
-                  state.tableFilters.filterButton = result.filterButton;
-                }
-              } catch (error) {
-                console.error('BBO Tools: Error reinitializing after DOM change', error);
-              }
-            }, 1000);
+            // Use the debounced navigation handler
+            debouncedNavigationHandler(
+              config.tableFilters.containerSelector, 
+              config.tableFilters.contentSelector,
+              config.tableFilters.buttonBarSelector
+            );
           }
         });
         
@@ -511,6 +502,9 @@
   function initializeFiltersAndSorting(containerElement, contentElement, buttonBarElement) {
     try {
       console.log('BBO Tools: Initializing filters and sorting UI');
+      
+      // Define debounced version of applyFiltersAndSort at the beginning
+      const debouncedApplyFiltersAndSort = debounce(applyFiltersAndSort, 150);
       
       // Create filter button with ARIA attributes for accessibility
       const filterButton = document.createElement('button');
@@ -750,8 +744,8 @@
           checkboxContainer.appendChild(label);
           groupSpan.appendChild(checkboxContainer);
           
-          // Add event listener
-          checkbox.addEventListener('change', applyFiltersAndSort);
+          // Add event listener with debouncing
+          checkbox.addEventListener('change', debouncedApplyFiltersAndSort);
         });
         
         filterGroups[groupKey] = groupSpan;
@@ -807,24 +801,21 @@
         contentElement.style.position = 'relative';
       }
       
-      // Add filter button click event to toggle filter panel
-      filterButton.addEventListener('click', () => {
+      // Add filter button click event to toggle filter panel with debouncing
+      filterButton.addEventListener('click', debounce(() => {
         const isHidden = controlsDiv.style.display === 'none';
         controlsDiv.style.display = isHidden ? 'block' : 'none';
         filterButton.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
-      });
+      }, 50));
       
-      // Add close button event
-      closeButton.addEventListener('click', () => {
+      // Add close button event with debouncing
+      closeButton.addEventListener('click', debounce(() => {
         controlsDiv.style.display = 'none';
         filterButton.setAttribute('aria-expanded', 'false');
-      });
+      }, 50));
       
-      // Add event listener to sort dropdown
-      sortSelect.addEventListener('change', applyFiltersAndSort);
-      
-      // Create a debounced version of applyFiltersAndSort
-      const debouncedApplyFiltersAndSort = debounce(applyFiltersAndSort, 150);
+      // Add event listener to sort dropdown with debouncing
+      sortSelect.addEventListener('change', debouncedApplyFiltersAndSort);
       
       // Helper functions for sorting
       function getOpenSeatsCount(element) {
@@ -845,7 +836,7 @@
       }
       
       function getScoringType(element) {
-const descElement = element.querySelector('span.descClass');
+        const descElement = element.querySelector('span.descClass');
         return descElement ? descElement.textContent.trim() : '';
       }
       
@@ -949,15 +940,10 @@ const descElement = element.querySelector('span.descClass');
         }
       }
       
-      // Create a new MutationObserver instance with improved error handling
+      // Create a new MutationObserver instance with debouncing
       const observer = new MutationObserver((mutations) => {
         try {
-          // Use a debounce mechanism to wait for changes to settle
-          clearTimeout(observer.timeout);
-          
-          observer.timeout = setTimeout(() => {
-            applyFiltersAndSort();
-          }, 100); // 100ms debounce period
+          debouncedApplyFiltersAndSort();
         } catch (error) {
           console.error('BBO Tools: Error in mutation observer', error);
         }
