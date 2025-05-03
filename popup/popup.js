@@ -74,10 +74,6 @@ document.addEventListener('DOMContentLoaded', () => {
           const feedbackSpan = document.createElement('span');
           feedbackSpan.className = 'save-feedback';
           feedbackSpan.textContent = 'Saving...';
-          feedbackSpan.style.marginLeft = '8px';
-          feedbackSpan.style.fontSize = '12px';
-          feedbackSpan.style.fontStyle = 'italic';
-          feedbackSpan.style.color = '#666';
           
           // Add feedback next to toggle
           featureToggle.appendChild(feedbackSpan);
@@ -111,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Check if validation was applied
                 if (response.validationApplied) {
                   feedbackSpan.textContent = 'Saved (validated)';
-                  feedbackSpan.style.color = '#FF9800'; // Orange to indicate validation was needed
+                  feedbackSpan.classList.add('feedback-validated');
                   
                   // Refresh UI with validated settings
                   setTimeout(() => {
@@ -119,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   }, 1500);
                 } else {
                   feedbackSpan.textContent = 'Saved!';
-                  feedbackSpan.style.color = '#4CAF50';
+                  feedbackSpan.classList.add('feedback-saved');
                   
                   // Remove feedback message after a delay
                   setTimeout(() => {
@@ -139,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(error => {
               console.error('Error saving settings:', error);
               feedbackSpan.textContent = 'Error saving!';
-              feedbackSpan.style.color = '#F44336';
+              feedbackSpan.classList.add('feedback-error');
               
               // Revert the checkbox state
               toggleInput.checked = !checked;
@@ -165,9 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
           const errorFeedback = document.createElement('div');
           errorFeedback.className = 'error-feedback';
           errorFeedback.textContent = 'An error occurred. Please try again.';
-          errorFeedback.style.color = '#F44336';
-          errorFeedback.style.fontSize = '12px';
-          errorFeedback.style.marginTop = '4px';
           
           featureItem.appendChild(errorFeedback);
           
@@ -243,8 +236,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const reloadButton = document.createElement('button');
       reloadButton.className = 'reload-button';
       reloadButton.textContent = 'Retry';
-      reloadButton.style.marginTop = '10px';
-      reloadButton.style.padding = '5px 10px';
       
       reloadButton.addEventListener('click', () => {
         location.reload();

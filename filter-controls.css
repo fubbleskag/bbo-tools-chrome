@@ -14,6 +14,10 @@
   width: 280px;
 }
 
+.bbo-tools-controls-visible {
+  display: block;
+}
+
 .bbo-tools-header {
   display: flex;
   justify-content: space-between;
@@ -104,6 +108,59 @@
   padding: 5px;
   border-radius: 4px;
   border: 1px solid #ccc;
+}
+
+/* Table item modifications */
+.bbo-tools-item-hidden {
+  display: none !important;
+}
+
+.bbo-tools-table-container {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.bbo-tools-table-container table-list-item {
+  order: attr(data-order);
+}
+
+.bbo-tools-content-positioned {
+  position: relative !important;
+}
+
+/* Feedback and error styles */
+.bbo-tools-feedback {
+  margin-left: 8px;
+  font-size: 12px;
+  font-style: italic;
+  color: #666;
+}
+
+.bbo-tools-feedback-saving {
+  color: #666;
+}
+
+.bbo-tools-feedback-saved {
+  color: #4CAF50;
+}
+
+.bbo-tools-feedback-validated {
+  color: #FF9800;
+}
+
+.bbo-tools-feedback-error {
+  color: #F44336;
+}
+
+.bbo-tools-error-feedback {
+  color: #F44336;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* Floating panel cleanup */
+.bbo-tools-orphaned {
+  /* For detecting orphaned panels */
 }
 
 /* High contrast and accessibility improvements */

@@ -155,6 +155,26 @@ input:disabled + .slider {
 
 .save-feedback {
   animation: fadeIn 0.3s;
+  margin-left: 8px;
+  font-size: 12px;
+  font-style: italic;
+  color: #666;
+}
+
+.feedback-saving {
+  color: #666;
+}
+
+.feedback-saved {
+  color: #4CAF50;
+}
+
+.feedback-validated {
+  color: #FF9800;
+}
+
+.feedback-error {
+  color: #F44336;
 }
 
 .reload-button {
@@ -167,6 +187,7 @@ input:disabled + .slider {
   font-size: 14px;
   margin: 0 auto;
   display: block;
+  margin-top: 10px;
 }
 
 .reload-button:hover {
@@ -176,6 +197,13 @@ input:disabled + .slider {
 .reload-button:focus {
   outline: 2px solid #001a33;
   outline-offset: 2px;
+}
+
+/* Error feedback for toggle changes */
+.error-feedback {
+  color: #F44336;
+  font-size: 12px;
+  margin-top: 4px;
 }
 
 /* High contrast and accessibility improvements */

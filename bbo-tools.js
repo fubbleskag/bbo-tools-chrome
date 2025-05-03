@@ -353,28 +353,25 @@
       // Clean up filter buttons
       cleanupFilterButtons();
       
-      // Reset the container styles
+      // Reset the container styles using classes
       const containerElement = document.querySelector(config.tableFilters.containerSelector);
       if (containerElement) {
-        containerElement.style.display = '';
-        containerElement.style.flexDirection = '';
+        containerElement.classList.remove('bbo-tools-table-container');
         
         // Reset items
         const items = containerElement.querySelectorAll('table-list-item');
         items.forEach(item => {
-          item.style.display = '';
-          item.style.order = '';
+          item.classList.remove('bbo-tools-item-hidden');
+          item.removeAttribute('data-order');
+          item.style.order = ''; // Clear any existing inline style
         });
       }
       
       // Also remove any floating panels that might be orphaned
-      const possiblePanels = document.querySelectorAll('div[style*="z-index: 1000"]');
-      possiblePanels.forEach(panel => {
-        // Check if this might be our filter panel
-        if (panel.textContent && panel.textContent.includes('Table Filters')) {
-          if (panel.parentNode) {
-            panel.parentNode.removeChild(panel);
-          }
+      const orphanedPanels = document.querySelectorAll('.bbo-tools-orphaned');
+      orphanedPanels.forEach(panel => {
+        if (panel.parentNode) {
+          panel.parentNode.removeChild(panel);
         }
       });
       
@@ -876,7 +873,7 @@
       
       // Make sure the content element has the correct positioning context
       if (getComputedStyle(contentElement).position === 'static') {
-        contentElement.style.position = 'relative';
+        contentElement.classList.add('bbo-tools-content-positioned');
       }
       
       // Add event listener to sort dropdown with a direct handler for immediate response
@@ -892,14 +889,18 @@
       
       // Add filter button click event to toggle filter panel with debouncing
       filterButton.addEventListener('click', debounce(() => {
-        const isHidden = controlsDiv.style.display === 'none';
-        controlsDiv.style.display = isHidden ? 'block' : 'none';
+        const isHidden = !controlsDiv.classList.contains('bbo-tools-controls-visible');
+        if (isHidden) {
+          controlsDiv.classList.add('bbo-tools-controls-visible');
+        } else {
+          controlsDiv.classList.remove('bbo-tools-controls-visible');
+        }
         filterButton.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
       }, 50));
       
       // Add close button event with debouncing
       closeButton.addEventListener('click', debounce(() => {
-        controlsDiv.style.display = 'none';
+        controlsDiv.classList.remove('bbo-tools-controls-visible');
         filterButton.setAttribute('aria-expanded', 'false');
       }, 50));
       
@@ -985,10 +986,10 @@
             
             // Apply visibility
             if (shouldHide) {
-              item.style.display = 'none';
+              item.classList.add('bbo-tools-item-hidden');
               removalCount++;
             } else {
-              item.style.display = '';
+              item.classList.remove('bbo-tools-item-hidden');
             }
           });
           
@@ -1008,22 +1009,21 @@
           }
           
           // Apply sorting to visible items
-          const visibleItems = items.filter(item => item.style.display !== 'none');
+          const visibleItems = items.filter(item => !item.classList.contains('bbo-tools-item-hidden'));
           const sortedIndices = getSortedIndices(visibleItems);
           
-          // Reorder items
+          // Reorder items using order style property
           sortedIndices.forEach((originalIndex, newIndex) => {
             if (originalIndex < visibleItems.length) {
               const item = visibleItems[originalIndex];
-              // Set order using CSS order property
+              // Use the order CSS property for flexbox ordering
               item.style.order = newIndex;
             }
           });
           
           // Make sure container allows for flexbox ordering
           if (containerElement) {
-            containerElement.style.display = 'flex';
-            containerElement.style.flexDirection = 'column';
+            containerElement.classList.add('bbo-tools-table-container');
           }
         } catch (error) {
           console.error('BBO Tools: Error applying filters and sorting', error);
@@ -1106,8 +1106,8 @@
   document.addEventListener('keydown', (event) => {
     // ESC key closes the filter panel
     if (event.key === 'Escape' && state.tableFilters.controlsDiv && 
-        state.tableFilters.controlsDiv.style.display === 'block') {
-      state.tableFilters.controlsDiv.style.display = 'none';
+        state.tableFilters.controlsDiv.classList.contains('bbo-tools-controls-visible')) {
+      state.tableFilters.controlsDiv.classList.remove('bbo-tools-controls-visible');
       if (state.tableFilters.filterButton) {
         state.tableFilters.filterButton.setAttribute('aria-expanded', 'false');
       }
