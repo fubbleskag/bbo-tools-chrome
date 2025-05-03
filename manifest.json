@@ -33,13 +33,20 @@
     "scripts": ["background.js"]
   },
   "content_scripts": [
-    {
-      "matches": ["*://*.bridgebase.com/*"],
-      "css": ["filter-controls.css"],
-      "js": ["bbo-tools.js"],
-      "run_at": "document_end"
-    }
-  ],
+      {
+        "matches": ["*://*.bridgebase.com/*"],
+        "css": ["filter-controls.css"],
+        "js": [
+          "compatibility.js",
+          "core/browser-api.js",
+          "core/storage-manager.js",
+          "core/message-bus.js",
+          "core/logger.js",
+          "bbo-tools.js"
+        ],
+        "run_at": "document_end"
+      }
+    ],
   "web_accessible_resources": [
     {
       "resources": ["icons/*.png"],
